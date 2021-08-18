@@ -1,0 +1,14 @@
+.*
+
+!.git*
+
+build
+log
+install
+
+__pycache__
+*.pyc
+
+*.cfg
+*.names
+*.weights
