@@ -22,12 +22,13 @@ import argparse
 import cv2
 import numpy as np
 import rclpy
+from rclpy.node import MsgType
 from rclpy.node import Node
 from shisen_interfaces.msg import Image
 
 
 class Detector (Node):
-    def __init__(self, node_name, topic_name, config, names, weights):
+    def __init__(self, node_name: str, topic_name: str, config: str, names: str, weights: str):
         self.config = config
         self.names = names
         self.weights = weights
@@ -41,7 +42,7 @@ class Detector (Node):
 
         self.get_logger().info("subscribe image on " + self.image_subscription.topic_name)
 
-    def listener_callback(self, message):
+    def listener_callback(self, message: MsgType):
         received_frame = np.array(message.data)
         received_frame = np.frombuffer(received_frame, dtype=np.uint8)
 
@@ -62,7 +63,7 @@ class Detector (Node):
         else:
             self.get_logger().warn("once, received empty image")
 
-    def detection(self, image):
+    def detection(self, image: np.ndarray) -> np.ndarray:
         class_file = self.names
         classes = None
         with open(class_file, 'rt') as f:
@@ -86,8 +87,9 @@ class Detector (Node):
         image = self.postprocess(outs, image, classes)
         return image
 
-    def draw_detection_result(self, img, label, x0, y0, xt, yt,
-                              color=(255, 127, 0), text_color=(255, 255, 255)):
+    def draw_detection_result(self, img: np.ndarray, label: str, x0: int, y0: int,
+                              xt: int, yt: int, color: tuple = (255, 127, 0),
+                              text_color: tuple = (255, 255, 255)) -> np.ndarray:
 
         y0, yt = max(y0 - 15, 0), min(yt + 15, img.shape[0])
         x0, xt = max(x0 - 15, 0), min(xt + 15, img.shape[1])
@@ -100,7 +102,8 @@ class Detector (Node):
 
         return img
 
-    def postprocess(self, outs, frame, classes, confThreshold=0.4, nmsThreshold=0.3):
+    def postprocess(self, outs: np.array, frame: np.array, classes: int,
+                    confThreshold: float = 0.4, nmsThreshold: float = 0.3) -> np.ndarray:
         classId = np.argmax(outs[0][0][5:])
 
         frame_h, frame_w, frame_c = frame.shape
