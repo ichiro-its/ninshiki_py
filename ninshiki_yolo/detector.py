@@ -135,7 +135,7 @@ class Detector (Node):
             self.add_detected_object(classes[classIds[i]], confidences[i], x, y, x+w, y+h)
 
         return frame
-    
+
     def draw_detection_result(self, img: np.ndarray, label: str, x0: int, y0: int,
                               xt: int, yt: int, color: tuple = (255, 127, 0),
                               text_color: tuple = (255, 255, 255)) -> np.ndarray:
@@ -150,8 +150,8 @@ class Detector (Node):
                     text_color, 1, cv2.LINE_AA)
 
         return img
-    
-    def add_detected_object(self, label: str, score: float, 
+
+    def add_detected_object(self, label: str, score: float,
                             x0: int, y0: int, x1: int, y1: int):
         detected_object = YoloDetectedObject()
         detected_object.label = label
@@ -162,6 +162,7 @@ class Detector (Node):
         detected_object.y1 = y1
 
         self.detection_result.detected_objects.append(detected_object)
+
 
 def main(args=None):
     try:
