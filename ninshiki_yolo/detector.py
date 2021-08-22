@@ -24,23 +24,32 @@ import numpy as np
 import rclpy
 from rclpy.node import MsgType
 from rclpy.node import Node
+from ninshiki_interfaces.msg import YoloDetectedObject, YoloDetectedObjects
 from shisen_interfaces.msg import Image
 
 
 class Detector (Node):
     def __init__(self, node_name: str, topic_name: str, config: str, names: str, weights: str):
+        super().__init__(node_name)
+
         self.config = config
         self.names = names
         self.weights = weights
-        super().__init__(node_name)
+
+        self.detection_result = YoloDetectedObjects()
 
         self.image_subscription = self.create_subscription(
             Image,
             topic_name,
             self.listener_callback,
             10)
-
         self.get_logger().info("subscribe image on " + self.image_subscription.topic_name)
+
+        self.detected_object_publisher = self.create_publisher(
+            YoloDetectedObjects, node_name + "/detections", 10)
+        self.get_logger().info(
+            "publish detected images on "
+            + self.detected_object_publisher.topic_name)
 
     def listener_callback(self, message: MsgType):
         received_frame = np.array(message.data)
@@ -49,14 +58,14 @@ class Detector (Node):
         # Raw Image
         if (message.quality < 0):
             received_frame = received_frame.reshape(message.rows, message.cols, 3)
-            print("Raw Image")
         # Compressed Image
         else:
             received_frame = cv2.imdecode(received_frame, cv2.IMREAD_UNCHANGED)
-            print("Compressed Image")
 
         if (received_frame.size != 0):
             output_img = self.detection(received_frame)
+            self.detected_object_publisher.publish(self.detection_result)
+
             cv2.imshow(self.image_subscription.topic_name, output_img)
             cv2.waitKey(1)
             self.get_logger().debug("once, received image and display it")
@@ -87,22 +96,7 @@ class Detector (Node):
         image = self.postprocess(outs, image, classes)
         return image
 
-    def draw_detection_result(self, img: np.ndarray, label: str, x0: int, y0: int,
-                              xt: int, yt: int, color: tuple = (255, 127, 0),
-                              text_color: tuple = (255, 255, 255)) -> np.ndarray:
-
-        y0, yt = max(y0 - 15, 0), min(yt + 15, img.shape[0])
-        x0, xt = max(x0 - 15, 0), min(xt + 15, img.shape[1])
-
-        (w, h), baseline = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.4, 1)
-        cv2.rectangle(img, (x0, y0 + baseline), (max(xt, x0 + w), yt), color, 2)
-        cv2.rectangle(img, (x0, y0 - h), (x0 + w, y0 + baseline), color, -1)
-        cv2.putText(img, label, (x0, y0), cv2.FONT_HERSHEY_SIMPLEX, 0.4,
-                    text_color, 1, cv2.LINE_AA)
-
-        return img
-
-    def postprocess(self, outs: np.array, frame: np.array, classes: int,
+    def postprocess(self, outs: np.array, frame: np.array, classes: list,
                     confThreshold: float = 0.4, nmsThreshold: float = 0.3) -> np.ndarray:
         classId = np.argmax(outs[0][0][5:])
 
@@ -138,9 +132,36 @@ class Detector (Node):
 
             frame = self.draw_detection_result(frame, label, x, y, x+w, y+h, color=(255, 127, 0),
                                                text_color=(255, 255, 255))
+            self.add_detected_object(classes[classIds[i]], confidences[i], x, y, x+w, y+h)
 
         return frame
+    
+    def draw_detection_result(self, img: np.ndarray, label: str, x0: int, y0: int,
+                              xt: int, yt: int, color: tuple = (255, 127, 0),
+                              text_color: tuple = (255, 255, 255)) -> np.ndarray:
 
+        y0, yt = max(y0 - 15, 0), min(yt + 15, img.shape[0])
+        x0, xt = max(x0 - 15, 0), min(xt + 15, img.shape[1])
+
+        (w, h), baseline = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.4, 1)
+        cv2.rectangle(img, (x0, y0 + baseline), (max(xt, x0 + w), yt), color, 2)
+        cv2.rectangle(img, (x0, y0 - h), (x0 + w, y0 + baseline), color, -1)
+        cv2.putText(img, label, (x0, y0), cv2.FONT_HERSHEY_SIMPLEX, 0.4,
+                    text_color, 1, cv2.LINE_AA)
+
+        return img
+    
+    def add_detected_object(self, label: str, score: float, 
+                            x0: int, y0: int, x1: int, y1: int):
+        detected_object = YoloDetectedObject()
+        detected_object.label = label
+        detected_object.score = score
+        detected_object.x0 = x0
+        detected_object.y0 = y0
+        detected_object.x1 = x1
+        detected_object.y1 = y1
+
+        self.detection_result.detected_objects.append(detected_object)
 
 def main(args=None):
     try:
