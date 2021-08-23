@@ -20,7 +20,8 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'detector = ninshiki_yolo.detector:main'
+            'detector = ninshiki_yolo.detector:main',
+            'viewer = ninshiki_yolo.viewer:main'
         ],
     },
 )
