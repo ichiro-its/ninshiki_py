@@ -119,12 +119,10 @@ class Detector (Node):
                 classIds.append(classId)
                 confidences.append(float(confidence))
                 boxes.append([x, y, w, h])
+
         indices = cv2.dnn.NMSBoxes(boxes, confidences, confThreshold, nmsThreshold)
-        print("indices = ", indices)
         for i in indices:
-            print("i = ", i)
             i = i[0]
-            print("i[0] = ", i)
             box = boxes[i]
             x = box[0]
             y = box[1]
@@ -132,14 +130,10 @@ class Detector (Node):
             h = box[3]
 
             label = '%s: %.1f%%' % (classes[classIds[i]], (confidences[i]*100))
-            name = classes[classIds[i]]
-            score = confidences[i]
-            print(name, score)
-            self.add_detected_object(name, score, x, y, x+w, y+h)
-            # print("array = ", self.detection_result.detected_objects)
             frame = self.draw_detection_result(frame, label, x, y, x+w, y+h, color=(255, 127, 0),
                                                text_color=(255, 255, 255))
-        print("+++++++++")
+
+            self.add_detected_object(classes[classIds[i]], confidences[i], x, y, x+w, y+h)
 
         return frame
 
@@ -160,7 +154,6 @@ class Detector (Node):
 
     def add_detected_object(self, label: str, score: float,
                             x0: int, y0: int, x1: int, y1: int):
-        print("terpanggil")
         detected_object = YoloDetectedObject()
         detected_object.label = label
         detected_object.score = score
@@ -170,7 +163,6 @@ class Detector (Node):
         detected_object.y1 = y1
 
         self.detection_result.detected_objects.append(detected_object)
-        print("akhir = ",self.detection_result.detected_objects)
 
 
 def main(args=None):

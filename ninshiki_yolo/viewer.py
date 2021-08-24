@@ -19,12 +19,10 @@
 # THE SOFTWARE.
 
 import argparse
-import cv2
-import numpy as np
 import rclpy
 from rclpy.node import MsgType
 from rclpy.node import Node
-from ninshiki_interfaces.msg import YoloDetectedObject, YoloDetectedObjects
+from ninshiki_interfaces.msg import YoloDetectedObjects
 
 
 class Viewer(Node):
@@ -36,13 +34,9 @@ class Viewer(Node):
         self.get_logger().info("subscribe image on " + self.image_subscription.topic_name)
 
     def listener_callback(self, message: MsgType):
-        # print("message = ", message)
-        # print(type(message))
-        # print("=========================")
         for detected_object in message.detected_objects:
             print(detected_object)
-            print("")
-
+        print()
 
 
 def main(args=None):
