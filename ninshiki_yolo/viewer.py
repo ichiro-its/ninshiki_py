@@ -32,6 +32,8 @@ class Viewer(Node):
     def __init__(self, node_name: str, detection_topic: str, img_topic: str):
         super().__init__(node_name)
         self.detection_result = DetectedObjects()
+        self.width = 0
+        self.height = 0
 
         self.detected_object_subscription = self.create_subscription(
             DetectedObjects, detection_topic, self.listener_callback_msg, 10)
@@ -43,9 +45,13 @@ class Viewer(Node):
         self.get_logger().info("subscribe image on " + self.image_subscription.topic_name)
 
     def listener_callback_msg(self, message: MsgType):
+        print("message = ", message)
         self.detection_result = message
 
     def listener_callback_img(self, message: MsgType):
+        self.width = message.cols
+        self.height = message.rows
+
         received_frame = np.array(message.data)
         received_frame = np.frombuffer(received_frame, dtype=np.uint8)
 
@@ -67,10 +73,10 @@ class Viewer(Node):
     def draw_detection_result(self, frame: np.array, detection_result: MsgType) -> np.ndarray:
         for detected_object in detection_result.detected_objects:
             label = '%s: %.1f%%' % (detected_object.label, detected_object.score)
-            x0 = detected_object.left
-            y0 = detected_object.top
-            xt = detected_object.right
-            yt = detected_object.bottom
+            x0 = detected_object.left * self.width
+            y0 = detected_object.top * self.height
+            xt = detected_object.right * self.width
+            yt = detected_object.bottom * self.height
             color = (255, 127, 0)
             text_color = (255, 255, 255)
 

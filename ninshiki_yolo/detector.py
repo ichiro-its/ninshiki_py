@@ -35,14 +35,14 @@ class Detector(Node):
         self.config = config
         self.names = names
         self.weights = weights
+
+        self.width = 0
+        self.height = 0
         self.enable_view_detection_result = postprocess
         self.detection_result = DetectedObjects()
 
         self.image_subscription = self.create_subscription(
-            Image,
-            topic_name,
-            self.listener_callback,
-            10)
+            Image, topic_name, self.listener_callback, 10)
         self.get_logger().info(
             "subscribe image on "
             + self.image_subscription.topic_name)
@@ -54,6 +54,9 @@ class Detector(Node):
             + self.detected_object_publisher.topic_name)
 
     def listener_callback(self, message: MsgType):
+        self.width = message.cols
+        self.height = message.rows
+
         received_frame = np.array(message.data)
         received_frame = np.frombuffer(received_frame, dtype=np.uint8)
 
@@ -66,6 +69,7 @@ class Detector(Node):
 
         if (received_frame.size != 0):
             self.detection(received_frame)
+            print("message = ", self.detection_result)
             self.detected_object_publisher.publish(self.detection_result)
 
             if self.enable_view_detection_result:
@@ -136,14 +140,19 @@ class Detector(Node):
             w = box[2]
             h = box[3]
 
-            self.add_detected_object(classes[classIds[i]], confidences[i], x, y, x+w, y+h)
+            self.add_detected_object(classes[classIds[i]], confidences[i],
+                                     x / self.width, y / self.height,
+                                     (x+w) / self.width, (y+h) / self.height)
 
     def postprocess(self, frame: np.array, detection_result: MsgType) -> np.ndarray:
         for detected_object in detection_result.detected_objects:
             label = '%s: %.1f%%' % (detected_object.label, detected_object.score)
-            frame = self.draw_detection_result(frame, label, detected_object.left,
-                                               detected_object.top, detected_object.right,
-                                               detected_object.bottom, color=(255, 127, 0),
+            frame = self.draw_detection_result(frame, label,
+                                               int(detected_object.left * self.width),
+                                               int(detected_object.top * self.height),
+                                               int(detected_object.right * self.width),
+                                               int(detected_object.bottom * self.height),
+                                               color=(255, 127, 0),
                                                text_color=(255, 255, 255))
         return frame
 
@@ -163,7 +172,7 @@ class Detector(Node):
         return img
 
     def add_detected_object(self, label: str, score: float,
-                            x0: int, y0: int, x1: int, y1: int):
+                            x0: float, y0: float, x1: float, y1: float):
         detection_object = DetectedObject()
 
         detection_object.label = label
