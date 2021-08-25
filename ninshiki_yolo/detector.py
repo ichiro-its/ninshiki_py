@@ -26,6 +26,7 @@ from rclpy.node import MsgType
 from rclpy.node import Node
 from ninshiki_interfaces.msg import DetectedObject, DetectedObjects
 from shisen_interfaces.msg import Image
+from .draw_detection_result import draw_detection_result
 
 
 class Detector(Node):
@@ -56,6 +57,7 @@ class Detector(Node):
     def listener_callback(self, message: MsgType):
         self.width = message.cols
         self.height = message.rows
+        detection_result = DetectedObjects()
 
         received_frame = np.array(message.data)
         received_frame = np.frombuffer(received_frame, dtype=np.uint8)
@@ -68,22 +70,24 @@ class Detector(Node):
             received_frame = cv2.imdecode(received_frame, cv2.IMREAD_UNCHANGED)
 
         if (received_frame.size != 0):
-            self.detection(received_frame)
-            print("message = ", self.detection_result)
-            self.detected_object_publisher.publish(self.detection_result)
+            self.detection(received_frame, detection_result)
+            self.detected_object_publisher.publish(detection_result)
 
             if self.enable_view_detection_result:
-                postprocess_frame = self.postprocess(received_frame, self.detection_result)
+                postprocess_frame = draw_detection_result(self.width, self.height,
+                                                          received_frame, detection_result)
                 cv2.imshow(self.image_subscription.topic_name, postprocess_frame)
                 cv2.waitKey(1)
                 self.get_logger().debug("once, received image and display it")
+            else:
+                self.get_logger().debug("once, received image but not display it")
         else:
             self.get_logger().warn("once, received empty image")
 
         # Clear message list
         self.detection_result.detected_objects.clear()
 
-    def detection(self, image: np.ndarray):
+    def detection(self, image: np.ndarray, detection_result: MsgType):
         class_file = self.names
         classes = None
         with open(class_file, 'rt') as f:
@@ -142,37 +146,12 @@ class Detector(Node):
 
             self.add_detected_object(classes[classIds[i]], confidences[i],
                                      x / self.width, y / self.height,
-                                     (x+w) / self.width, (y+h) / self.height)
-
-    def postprocess(self, frame: np.array, detection_result: MsgType) -> np.ndarray:
-        for detected_object in detection_result.detected_objects:
-            label = '%s: %.1f%%' % (detected_object.label, detected_object.score)
-            frame = self.draw_detection_result(frame, label,
-                                               int(detected_object.left * self.width),
-                                               int(detected_object.top * self.height),
-                                               int(detected_object.right * self.width),
-                                               int(detected_object.bottom * self.height),
-                                               color=(255, 127, 0),
-                                               text_color=(255, 255, 255))
-        return frame
-
-    def draw_detection_result(self, img: np.ndarray, label: str, x0: int, y0: int,
-                              xt: int, yt: int, color: tuple = (255, 127, 0),
-                              text_color: tuple = (255, 255, 255)) -> np.ndarray:
-
-        y0, yt = max(y0 - 15, 0), min(yt + 15, img.shape[0])
-        x0, xt = max(x0 - 15, 0), min(xt + 15, img.shape[1])
-
-        (w, h), baseline = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.4, 1)
-        cv2.rectangle(img, (x0, y0 + baseline), (max(xt, x0 + w), yt), color, 2)
-        cv2.rectangle(img, (x0, y0 - h), (x0 + w, y0 + baseline), color, -1)
-        cv2.putText(img, label, (x0, y0), cv2.FONT_HERSHEY_SIMPLEX, 0.4,
-                    text_color, 1, cv2.LINE_AA)
-
-        return img
+                                     (x+w) / self.width, (y+h) / self.height,
+                                     detection_result)
 
     def add_detected_object(self, label: str, score: float,
-                            x0: float, y0: float, x1: float, y1: float):
+                            x0: float, y0: float, x1: float, y1: float,
+                            detection_result: MsgType):
         detection_object = DetectedObject()
 
         detection_object.label = label
@@ -182,10 +161,20 @@ class Detector(Node):
         detection_object.right = x1
         detection_object.bottom = y1
 
-        self.detection_result.detected_objects.append(detection_object)
+        detection_result.detected_objects.append(detection_object)
 
 
 def main(args=None):
+    help_message = """Usage: ros run ninshiki_yolo detector --topic TOPIC
+       --config CONFIG --names NAMES --weights WEIGHT --postprocess POSTPROCESS
+
+Value for optional argument:
+- TOPIC              string
+- CONFIG             string
+- NAMES              string
+- WEIGHT             string
+- POSTPROCESS        1 or 0"""
+
     try:
         parser = argparse.ArgumentParser()
         parser.add_argument('--topic', help='specify topic name to subscribe')
@@ -203,8 +192,12 @@ def main(args=None):
 
         detector.destroy_node()
         rclpy.shutdown()
-    except (IndexError):
-        detector.get_logger("Usage: ros2 run ninshiki_yolo detector --names")
+    except (TypeError):
+        print("WARNING: Missing Argument !!!")
+        print(help_message)
+    # except:
+    #     print("WARNING: Value Error !!!")
+    #     print(help_message)
 
 
 if __name__ == '__main__':

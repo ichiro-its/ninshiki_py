@@ -26,6 +26,7 @@ from rclpy.node import MsgType
 from rclpy.node import Node
 from ninshiki_interfaces.msg import DetectedObjects
 from shisen_interfaces.msg import Image
+from .draw_detection_result import draw_detection_result
 
 
 class Viewer(Node):
@@ -45,7 +46,7 @@ class Viewer(Node):
         self.get_logger().info("subscribe image on " + self.image_subscription.topic_name)
 
     def listener_callback_msg(self, message: MsgType):
-        print("message = ", message)
+        print(message)
         self.detection_result = message
 
     def listener_callback_img(self, message: MsgType):
@@ -63,37 +64,22 @@ class Viewer(Node):
             received_frame = cv2.imdecode(received_frame, cv2.IMREAD_UNCHANGED)
 
         if (received_frame.size != 0):
-            detection_frame = self.draw_detection_result(received_frame, self.detection_result)
+            detection_frame = draw_detection_result(self.width, self.height,
+                                                    received_frame, self.detection_result)
             cv2.imshow(self.image_subscription.topic_name, detection_frame)
             cv2.waitKey(1)
             self.get_logger().debug("once, received image and display it")
         else:
             self.get_logger().warn("once, received empty image")
 
-    def draw_detection_result(self, frame: np.array, detection_result: MsgType) -> np.ndarray:
-        for detected_object in detection_result.detected_objects:
-            label = '%s: %.1f%%' % (detected_object.label, detected_object.score)
-            x0 = detected_object.left * self.width
-            y0 = detected_object.top * self.height
-            xt = detected_object.right * self.width
-            yt = detected_object.bottom * self.height
-            color = (255, 127, 0)
-            text_color = (255, 255, 255)
-
-            y0, yt = max(y0 - 15, 0), min(yt + 15, frame.shape[0])
-            x0, xt = max(x0 - 15, 0), min(xt + 15, frame.shape[1])
-
-            # Draw detection result
-            (w, h), baseline = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.4, 1)
-            cv2.rectangle(frame, (x0, y0 + baseline), (max(xt, x0 + w), yt), color, 2)
-            cv2.rectangle(frame, (x0, y0 - h), (x0 + w, y0 + baseline), color, -1)
-            cv2.putText(frame, label, (x0, y0), cv2.FONT_HERSHEY_SIMPLEX, 0.4,
-                        text_color, 1, cv2.LINE_AA)
-
-        return frame
-
 
 def main(args=None):
+    help_message = """Usage: ros2 run ninshiki_yolo viewer
+       --detection_topic TOPIC --img_topic TOPIC
+
+Value for optional argument:
+- TOPIC              string"""
+
     try:
         parser = argparse.ArgumentParser()
         parser.add_argument('--detection_topic', help='specify topic name that contain'
@@ -109,9 +95,12 @@ def main(args=None):
 
         viewer.destroy_node()
         rclpy.shutdown()
-    except (IndexError):
-        viewer.get_logger("Usage: ros2 run ninshiki_yolo viewer"
-                          "--detection_topic TOPIC --img_topic TOPIC")
+    except (TypeError):
+        print("WARNING: Missing Argument !!!")
+        print(help_message)
+    # except:
+    #     print("WARNING: Value Error !!!")
+    #     print(help_message)
 
 
 if __name__ == '__main__':
