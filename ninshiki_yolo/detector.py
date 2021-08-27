@@ -24,46 +24,70 @@ import numpy as np
 import rclpy
 from rclpy.node import MsgType
 from rclpy.node import Node
+from ninshiki_interfaces.msg import DetectedObject, DetectedObjects
 from shisen_interfaces.msg import Image
+from .draw_detection_result import draw_detection_result
 
 
-class Detector (Node):
-    def __init__(self, node_name: str, topic_name: str, config: str, names: str, weights: str):
+class Detector(Node):
+    def __init__(self, node_name: str, topic_name: str, config: str, names: str,
+                 weights: str, postprocess: int):
+        super().__init__(node_name)
         self.config = config
         self.names = names
         self.weights = weights
-        super().__init__(node_name)
+
+        self.width = 0
+        self.height = 0
+        self.enable_view_detection_result = postprocess
+        self.detection_result = DetectedObjects()
 
         self.image_subscription = self.create_subscription(
-            Image,
-            topic_name,
-            self.listener_callback,
-            10)
+            Image, topic_name, self.listener_callback, 10)
+        self.get_logger().info(
+            "subscribe image on "
+            + self.image_subscription.topic_name)
 
-        self.get_logger().info("subscribe image on " + self.image_subscription.topic_name)
+        self.detected_object_publisher = self.create_publisher(
+            DetectedObjects, node_name + "/detections", 10)
+        self.get_logger().info(
+            "publish detected images on "
+            + self.detected_object_publisher.topic_name)
 
     def listener_callback(self, message: MsgType):
+        self.width = message.cols
+        self.height = message.rows
+        detection_result = DetectedObjects()
+
         received_frame = np.array(message.data)
         received_frame = np.frombuffer(received_frame, dtype=np.uint8)
 
         # Raw Image
         if (message.quality < 0):
             received_frame = received_frame.reshape(message.rows, message.cols, 3)
-            print("Raw Image")
         # Compressed Image
         else:
             received_frame = cv2.imdecode(received_frame, cv2.IMREAD_UNCHANGED)
-            print("Compressed Image")
 
         if (received_frame.size != 0):
-            output_img = self.detection(received_frame)
-            cv2.imshow(self.image_subscription.topic_name, output_img)
-            cv2.waitKey(1)
-            self.get_logger().debug("once, received image and display it")
+            self.detection(received_frame, detection_result)
+            self.detected_object_publisher.publish(detection_result)
+
+            if self.enable_view_detection_result:
+                postprocess_frame = draw_detection_result(self.width, self.height,
+                                                          received_frame, detection_result)
+                cv2.imshow(self.image_subscription.topic_name, postprocess_frame)
+                cv2.waitKey(1)
+                self.get_logger().debug("once, received image and display it")
+            else:
+                self.get_logger().debug("once, received image but not display it")
         else:
             self.get_logger().warn("once, received empty image")
 
-    def detection(self, image: np.ndarray) -> np.ndarray:
+        # Clear message list
+        self.detection_result.detected_objects.clear()
+
+    def detection(self, image: np.ndarray, detection_result: MsgType):
         class_file = self.names
         classes = None
         with open(class_file, 'rt') as f:
@@ -84,32 +108,17 @@ class Detector (Node):
 
         net.setInput(blob)
         outs = net.forward(layerOutput)
-        image = self.postprocess(outs, image, classes)
-        return image
 
-    def draw_detection_result(self, img: np.ndarray, label: str, x0: int, y0: int,
-                              xt: int, yt: int, color: tuple = (255, 127, 0),
-                              text_color: tuple = (255, 255, 255)) -> np.ndarray:
+        # Get object name, score, and location
+        confThreshold: float = 0.4
+        nmsThreshold: float = 0.3
 
-        y0, yt = max(y0 - 15, 0), min(yt + 15, img.shape[0])
-        x0, xt = max(x0 - 15, 0), min(xt + 15, img.shape[1])
-
-        (w, h), baseline = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.4, 1)
-        cv2.rectangle(img, (x0, y0 + baseline), (max(xt, x0 + w), yt), color, 2)
-        cv2.rectangle(img, (x0, y0 - h), (x0 + w, y0 + baseline), color, -1)
-        cv2.putText(img, label, (x0, y0), cv2.FONT_HERSHEY_SIMPLEX, 0.4,
-                    text_color, 1, cv2.LINE_AA)
-
-        return img
-
-    def postprocess(self, outs: np.array, frame: np.array, classes: int,
-                    confThreshold: float = 0.4, nmsThreshold: float = 0.3) -> np.ndarray:
         classId = np.argmax(outs[0][0][5:])
-
-        frame_h, frame_w, frame_c = frame.shape
+        frame_h, frame_w, frame_c = image.shape
         classIds = []
         confidences = []
         boxes = []
+
         for out in outs:
             for detection in out:
                 scores = detection[5:]
@@ -126,6 +135,7 @@ class Detector (Node):
                 boxes.append([x, y, w, h])
 
         indices = cv2.dnn.NMSBoxes(boxes, confidences, confThreshold, nmsThreshold)
+        # Get object location
         for i in indices:
             i = i[0]
             box = boxes[i]
@@ -134,32 +144,60 @@ class Detector (Node):
             w = box[2]
             h = box[3]
 
-            label = '%s: %.1f%%' % (classes[classIds[i]], (confidences[i]*100))
+            self.add_detected_object(classes[classIds[i]], confidences[i],
+                                     x / self.width, y / self.height,
+                                     (x+w) / self.width, (y+h) / self.height,
+                                     detection_result)
 
-            frame = self.draw_detection_result(frame, label, x, y, x+w, y+h, color=(255, 127, 0),
-                                               text_color=(255, 255, 255))
+    def add_detected_object(self, label: str, score: float,
+                            x0: float, y0: float, x1: float, y1: float,
+                            detection_result: MsgType):
+        detection_object = DetectedObject()
 
-        return frame
+        detection_object.label = label
+        detection_object.score = score
+        detection_object.left = x0
+        detection_object.top = y0
+        detection_object.right = x1
+        detection_object.bottom = y1
+
+        detection_result.detected_objects.append(detection_object)
 
 
 def main(args=None):
+    help_message = """Usage: ros run ninshiki_yolo detector --topic TOPIC
+       --config CONFIG --names NAMES --weights WEIGHT --postprocess POSTPROCESS
+
+Value for optional argument:
+- TOPIC              string
+- CONFIG             string
+- NAMES              string
+- WEIGHT             string
+- POSTPROCESS        1 or 0"""
+
     try:
         parser = argparse.ArgumentParser()
         parser.add_argument('--topic', help='specify topic name to subscribe')
         parser.add_argument('--config', help='specify model configuration')
         parser.add_argument('--names', help='specify class file name')
         parser.add_argument('--weights', help='specify model weights')
+        parser.add_argument('--postprocess', help='show detection result')
         arg = parser.parse_args()
 
         rclpy.init(args=args)
-        detector = Detector("detector", arg.topic, arg.config, arg.names, arg.weights)
+        detector = Detector("detector", arg.topic, arg.config, arg.names, arg.weights,
+                            int(arg.postprocess))
 
         rclpy.spin(detector)
 
         detector.destroy_node()
         rclpy.shutdown()
-    except (IndexError):
-        detector.get_logger("Usage: ros2 run ninshiki_yolo detector --names")
+    except (TypeError):
+        print("WARNING: Missing Argument !!!")
+        print(help_message)
+    # except:
+    #     print("WARNING: Value Error !!!")
+    #     print(help_message)
 
 
 if __name__ == '__main__':

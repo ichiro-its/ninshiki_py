@@ -14,13 +14,14 @@ setup(
     install_requires=['setuptools'],
     zip_safe=True,
     maintainer='ichiro',
-    maintainer_email='nathaterbaik@gmail.com',
+    maintainer_email='nathanterbaik@gmail.com',
     description='TODO: Package description',
     license='TODO: License declaration',
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'detector = ninshiki_yolo.detector:main'
+            'detector = ninshiki_yolo.detector:main',
+            'viewer = ninshiki_yolo.viewer:main'
         ],
     },
 )
