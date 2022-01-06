@@ -33,9 +33,11 @@ class Detector(Node):
     def __init__(self, node_name: str, topic_name: str, config: str, names: str,
                  weights: str, postprocess: int):
         super().__init__(node_name)
-        self.config = config
-        self.names = names
-        self.weights = weights
+        self.file_name = names
+        self.classes = None
+
+        self.net = cv2.dnn.readNetFromDarknet(config, weights)
+        self.outs = None
 
         self.width = 0
         self.height = 0
@@ -86,40 +88,38 @@ class Detector(Node):
 
         # Clear message list
         self.detection_result.detected_objects.clear()
+    
+    def define_model(self, image: np.ndarray):
+        with open(self.file_name, 'rt') as f:
+            self.classes = f.read().rstrip('\n').split('\n')
+        
+        self.net.getLayerNames()
+        layerOutput = self.net.getUnconnectedOutLayersNames()
 
-    def detection(self, image: np.ndarray, detection_result: MsgType):
-        class_file = self.names
-        classes = None
-        with open(class_file, 'rt') as f:
-            classes = f.read().rstrip('\n').split('\n')
-        model_configuration = self.config
-        model_weights = self.weights
-
-        net = cv2.dnn.readNetFromDarknet(model_configuration, model_weights)
-        net.getLayerNames()
-        layerOutput = net.getUnconnectedOutLayersNames()
-
-        net.setPreferableBackend(cv2.dnn.DNN_BACKEND_OPENCV)
-        net.setPreferableTarget(cv2.dnn.DNN_TARGET_CPU)
+        self.net.setPreferableBackend(cv2.dnn.DNN_BACKEND_OPENCV)
+        self.net.setPreferableTarget(cv2.dnn.DNN_TARGET_CPU)
 
         inpWidth = 416
         inpHeight = 416
         blob = cv2.dnn.blobFromImage(image, 1/255, (inpWidth, inpHeight), [0, 0, 0], 1, crop=False)
 
-        net.setInput(blob)
-        outs = net.forward(layerOutput)
+        self.net.setInput(blob)
+        self.outs = self.net.forward(layerOutput)
+
+    def detection(self, image: np.ndarray, detection_result: MsgType):
+        self.define_model(image)
 
         # Get object name, score, and location
         confThreshold: float = 0.4
         nmsThreshold: float = 0.3
 
-        classId = np.argmax(outs[0][0][5:])
+        classId = np.argmax(self.outs[0][0][5:])
         frame_h, frame_w, frame_c = image.shape
         classIds = []
         confidences = []
         boxes = []
 
-        for out in outs:
+        for out in self.outs:
             for detection in out:
                 scores = detection[5:]
                 classId = np.argmax(scores)
@@ -144,7 +144,7 @@ class Detector(Node):
             w = box[2]
             h = box[3]
 
-            self.add_detected_object(classes[classIds[i]], confidences[i],
+            self.add_detected_object(self.classes[classIds[i]], confidences[i],
                                      x / self.width, y / self.height,
                                      (x+w) / self.width, (y+h) / self.height,
                                      detection_result)
