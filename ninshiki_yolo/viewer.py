@@ -46,7 +46,6 @@ class Viewer(Node):
         self.get_logger().info("subscribe image on " + self.image_subscription.topic_name)
 
     def listener_callback_msg(self, message: MsgType):
-        print(message)
         self.detection_result = message
 
     def listener_callback_img(self, message: MsgType):

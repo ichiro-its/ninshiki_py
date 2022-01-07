@@ -137,7 +137,6 @@ class Detector(Node):
         indices = cv2.dnn.NMSBoxes(boxes, confidences, confThreshold, nmsThreshold)
         # Get object location
         for i in indices:
-            i = i[0]
             box = boxes[i]
             x = box[0]
             y = box[1]
