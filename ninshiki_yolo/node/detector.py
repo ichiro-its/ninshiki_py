@@ -26,7 +26,7 @@ from rclpy.node import MsgType
 from rclpy.node import Node
 from ninshiki_interfaces.msg import DetectedObject, DetectedObjects
 from shisen_interfaces.msg import Image
-from .draw_detection_result import draw_detection_result
+from ninshiki_yolo.utils.draw_detection_result import draw_detection_result
 
 
 class Detector(Node):

@@ -1,11 +1,11 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 package_name = 'ninshiki_yolo'
 
 setup(
     name=package_name,
     version='0.0.0',
-    packages=[package_name],
+    packages=find_packages(exclude=['test']),
     data_files=[
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
@@ -20,8 +20,8 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'detector = ninshiki_yolo.detector:main',
-            'viewer = ninshiki_yolo.viewer:main'
+            'detector = ninshiki_yolo.node.detector:main',
+            'viewer = ninshiki_yolo.node.viewer:main'
         ],
     },
 )
