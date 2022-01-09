@@ -75,6 +75,7 @@ class Detector(Node):
             received_frame = cv2.imdecode(received_frame, cv2.IMREAD_UNCHANGED)
 
         if (received_frame.size != 0):
+            self.define_model(received_frame)
             self.detection(received_frame, detection_result)
             self.detected_object_publisher.publish(detection_result)
 
@@ -117,8 +118,6 @@ class Detector(Node):
         self.outs = self.net.forward(layerOutput)
 
     def detection(self, image: np.ndarray, detection_result: MsgType):
-        self.define_model(image)
-
         # Get object name, score, and location
         confThreshold: float = 0.4
         nmsThreshold: float = 0.3
@@ -179,9 +178,12 @@ def main(args=None):
     parser.add_argument('config', help='specify model configuration')
     parser.add_argument('names', help='specify class file name')
     parser.add_argument('weights', help='specify model weights')
-    parser.add_argument('--postprocess', help='show detection result', default=False, type=bool)
-    parser.add_argument('--GPU', help='if we chose the computation using GPU', default=False, type=bool)
-    parser.add_argument('--MYRIAD', help='if we chose the computation using Compute Stick', default=False, type=bool)
+    parser.add_argument('--postprocess', help='show detection result', type=int,
+                        choices=[0, 1], default=0)
+    parser.add_argument('--GPU', help='if we chose the computation using GPU', type=int,
+                        choices=[0, 1], default=0)
+    parser.add_argument('--MYRIAD', help='if we chose the computation using Compute Stick', type=int,
+                        choices=[0, 1], default=0)
     arg = parser.parse_args()
 
     rclpy.init(args=args)
