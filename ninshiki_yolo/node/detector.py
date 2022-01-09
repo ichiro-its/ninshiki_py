@@ -31,7 +31,7 @@ from ninshiki_yolo.utils.draw_detection_result import draw_detection_result
 
 class Detector(Node):
     def __init__(self, node_name: str, topic_name: str, config: str, names: str,
-                 weights: str, postprocess: int):
+                 weights: str, postprocess: bool, gpu: bool, myriad: bool):
         super().__init__(node_name)
         self.file_name = names
         self.classes = None
@@ -43,6 +43,9 @@ class Detector(Node):
         self.height = 0
         self.enable_view_detection_result = postprocess
         self.detection_result = DetectedObjects()
+
+        self.gpu = gpu
+        self.myriad = myriad
 
         self.image_subscription = self.create_subscription(
             Image, topic_name, self.listener_callback, 10)
@@ -96,8 +99,15 @@ class Detector(Node):
         self.net.getLayerNames()
         layerOutput = self.net.getUnconnectedOutLayersNames()
 
-        self.net.setPreferableBackend(cv2.dnn.DNN_BACKEND_OPENCV)
-        self.net.setPreferableTarget(cv2.dnn.DNN_TARGET_CPU)
+        if self.gpu:
+            self.net.setPreferableBackend(cv2.dnn.DNN_BACKEND_CUDA)
+            self.net.setPreferableTarget(cv2.dnn.DNN_TARGET_CUDA)
+        elif self.myriad:
+            self.net.setPreferableBackend(cv2.dnn.DNN_BACKEND_OPENCV)
+            self.net.setPreferableTarget(cv2.dnn.DNN_TARGET_MYRIAD)
+        else:
+            self.net.setPreferableBackend(cv2.dnn.DNN_BACKEND_OPENCV)
+            self.net.setPreferableTarget(cv2.dnn.DNN_TARGET_CPU)
 
         inpWidth = 416
         inpHeight = 416
@@ -164,39 +174,24 @@ class Detector(Node):
 
 
 def main(args=None):
-    help_message = """Usage: ros run ninshiki_yolo detector --topic TOPIC
-       --config CONFIG --names NAMES --weights WEIGHT --postprocess POSTPROCESS
+    parser = argparse.ArgumentParser()
+    parser.add_argument('topic', help='specify topic name to subscribe')
+    parser.add_argument('config', help='specify model configuration')
+    parser.add_argument('names', help='specify class file name')
+    parser.add_argument('weights', help='specify model weights')
+    parser.add_argument('--postprocess', help='show detection result', default=False, type=bool)
+    parser.add_argument('--GPU', help='if we chose the computation using GPU', default=False, type=bool)
+    parser.add_argument('--MYRIAD', help='if we chose the computation using Compute Stick', default=False, type=bool)
+    arg = parser.parse_args()
 
-Value for optional argument:
-- TOPIC              string
-- CONFIG             string
-- NAMES              string
-- WEIGHT             string
-- POSTPROCESS        1 or 0"""
+    rclpy.init(args=args)
+    detector = Detector("detector", arg.topic, arg.config, arg.names, arg.weights,
+                        int(arg.postprocess), arg.GPU, arg.MYRIAD)
 
-    try:
-        parser = argparse.ArgumentParser()
-        parser.add_argument('--topic', help='specify topic name to subscribe')
-        parser.add_argument('--config', help='specify model configuration')
-        parser.add_argument('--names', help='specify class file name')
-        parser.add_argument('--weights', help='specify model weights')
-        parser.add_argument('--postprocess', help='show detection result')
-        arg = parser.parse_args()
+    rclpy.spin(detector)
 
-        rclpy.init(args=args)
-        detector = Detector("detector", arg.topic, arg.config, arg.names, arg.weights,
-                            int(arg.postprocess))
-
-        rclpy.spin(detector)
-
-        detector.destroy_node()
-        rclpy.shutdown()
-    except (TypeError):
-        print("WARNING: Missing Argument !!!")
-        print(help_message)
-    # except:
-    #     print("WARNING: Value Error !!!")
-    #     print(help_message)
+    detector.destroy_node()
+    rclpy.shutdown()
 
 
 if __name__ == '__main__':

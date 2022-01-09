@@ -73,33 +73,20 @@ class Viewer(Node):
 
 
 def main(args=None):
-    help_message = """Usage: ros2 run ninshiki_yolo viewer
-       --detection_topic TOPIC --img_topic TOPIC
+    parser = argparse.ArgumentParser()
+    parser.add_argument('detection_topic', help='specify topic name that contain'
+                        'detection result to subscribe')
+    parser.add_argument('img_topic', help='specify topic name that contain'
+                        'image to subscribe')
+    arg = parser.parse_args()
 
-Value for optional argument:
-- TOPIC              string"""
+    rclpy.init(args=args)
+    viewer = Viewer("viewer", arg.detection_topic, arg.img_topic)
 
-    try:
-        parser = argparse.ArgumentParser()
-        parser.add_argument('--detection_topic', help='specify topic name that contain'
-                            'detection result to subscribe')
-        parser.add_argument('--img_topic', help='specify topic name that contain'
-                            'image to subscribe')
-        arg = parser.parse_args()
+    rclpy.spin(viewer)
 
-        rclpy.init(args=args)
-        viewer = Viewer("viewer", arg.detection_topic, arg.img_topic)
-
-        rclpy.spin(viewer)
-
-        viewer.destroy_node()
-        rclpy.shutdown()
-    except (TypeError):
-        print("WARNING: Missing Argument !!!")
-        print(help_message)
-    # except:
-    #     print("WARNING: Value Error !!!")
-    #     print(help_message)
+    viewer.destroy_node()
+    rclpy.shutdown()
 
 
 if __name__ == '__main__':
