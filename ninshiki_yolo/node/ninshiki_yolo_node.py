@@ -22,6 +22,7 @@ import rclpy
 from rclpy.node import MsgType
 from rclpy.node import Node
 from ninshiki_yolo.detector.node.detector_node import DetectorNode
+from ninshiki_yolo.viewer.node.viewer_node import ViewerNode
 
 class NinshikiYoloNode(Node):
     def __init__(self, node_name: str, topic_name: str, config: str, names: str,
@@ -29,6 +30,12 @@ class NinshikiYoloNode(Node):
         super().__init__(node_name)
 
         self.detector_node = DetectorNode(self , topic_name, config, names,
-                                     weights, postprocess, gpu, myriad)
-        timer_period = 0.08  # seconds
+                                          weights, gpu, myriad)
+    
+        if postprocess:
+            self.viewer_node = ViewerNode(self, topic_name,
+                                          self.detector_node.detected_object_publisher.topic_name, 
+                                          postprocess)
+
+        timer_period = 0.008  # seconds
         self.timer = self.create_timer(timer_period, self.detector_node.publish)

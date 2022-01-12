@@ -22,38 +22,37 @@ import cv2
 import numpy as np
 import rclpy
 from rclpy.node import MsgType
-from ninshiki_interfaces.msg import DetectedObject, DetectedObjects
+from ninshiki_interfaces.msg import DetectedObjects
 from shisen_interfaces.msg import Image
 from ninshiki_yolo.utils.draw_detection_result import draw_detection_result
-from .detection import Detection
 
-class DetectorNode:
-    def __init__(self, node: rclpy.node.Node, topic_name: str,
-                 config: str, names: str, weights: str, 
-                 gpu: bool, myriad: bool):
+
+class ViewerNode:
+    def __init__(self, node: rclpy.node.Node, img_topic: str, 
+                 detection_topic: str, postprocess: bool):
+        self.enable_view_detection_result = postprocess
         self.detection_result = DetectedObjects()
         self.received_frame = None
-        # self.enable_view_detection_result = postprocess
+        self.width = 0
+        self.height = 0
 
-        self.detection = Detection(config, names, weights, self.detection_result, 
-                                   gpu, myriad)
-        
+        self.detected_object_subscription = node.create_subscription(
+            DetectedObjects, detection_topic, self.listener_callback_msg, 10)
+        node.get_logger().info("subscribe detection result on "
+                               + self.detected_object_subscription.topic_name)
+
         self.image_subscription = node.create_subscription(
-            Image, topic_name, self.listener_callback, 10)
-        node.get_logger().info(
-            "subscribe image on "
-            + self.image_subscription.topic_name)
+            Image, img_topic, self.listener_callback_img, 10)
+        node.get_logger().info("subscribe image on " + self.image_subscription.topic_name)
 
-        self.detected_object_publisher = node.create_publisher(
-            DetectedObjects, node.get_name() + "/detection", 10)
-        node.get_logger().info(
-            "publish detected images on "
-            + self.detected_object_publisher.topic_name)
-    
-    def listener_callback(self, message: MsgType):
+    def listener_callback_msg(self, message: MsgType):
+        self.detection_result = message
+        # print("viewer: ", self.detection_result)
+
+    def listener_callback_img(self, message: MsgType):
         if (message.data != []):
-            self.detection.width = message.cols
-            self.detection.height = message.rows
+            self.width = message.cols
+            self.height = message.rows
 
             self.received_frame = np.array(message.data)
             self.received_frame = np.frombuffer(self.received_frame, dtype=np.uint8)
@@ -64,17 +63,19 @@ class DetectorNode:
             # Compressed Image
             else:
                 self.received_frame = cv2.imdecode(self.received_frame, cv2.IMREAD_UNCHANGED)
+            
+            self.show_detection_result()
 
-    def publish(self):
+    def show_detection_result(self):
         if (self.received_frame is not None):
             if (self.received_frame.size != 0):
-                self.detection.pass_image_to_network(self.received_frame)
-                self.detection.detection(self.received_frame, self.detection_result)
-                # print("detector: ", self.detection_result)
-                self.detected_object_publisher.publish(self.detection_result)
+                if self.enable_view_detection_result:
+
+                    detection_frame = draw_detection_result(self.width, self.height,
+                                                            self.received_frame, self.detection_result)
+                    cv2.imshow(self.image_subscription.topic_name, detection_frame)
+                    cv2.waitKey(1)
+                # self.get_logger().debug("once, received image and display it")
         else:
             # self.get_logger().warn("once, received empty image")
             pass
-
-        # Clear message list
-        self.detection_result.detected_objects.clear()

@@ -37,13 +37,13 @@ def main(args=None):
     arg = parser.parse_args()
 
     rclpy.init(args=args)
-    detector = NinshikiYoloNode("detector", arg.topic, arg.config, arg.names,
+    ninshiki_yolo_node = NinshikiYoloNode("ninshiki_yolo", arg.topic, arg.config, arg.names,
                                 arg.weights, arg.postprocess, arg.GPU, 
                                 arg.MYRIAD)
 
-    rclpy.spin(detector)
+    rclpy.spin(ninshiki_yolo_node)
 
-    detector.destroy_node()
+    ninshiki_yolo_node.destroy_node()
     rclpy.shutdown()
 
 
