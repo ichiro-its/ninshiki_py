@@ -41,9 +41,9 @@ def main(args=None):
                                 arg.weights, arg.postprocess, arg.GPU, 
                                 arg.MYRIAD)
 
-    rclpy.spin(detector.node)
+    rclpy.spin(detector)
 
-    detector.node.destroy_node()
+    detector.destroy_node()
     rclpy.shutdown()
 
 

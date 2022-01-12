@@ -39,7 +39,6 @@ class Detection:
         self.width = 0
         self.height = 0
         self.enable_view_detection_result = postprocess
-        # self.detection_result = DetectedObjects()
 
         self.gpu = gpu
         self.myriad = myriad

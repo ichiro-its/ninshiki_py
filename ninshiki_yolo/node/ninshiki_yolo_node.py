@@ -26,10 +26,9 @@ from ninshiki_yolo.detector.node.detector_node import DetectorNode
 class NinshikiYoloNode(Node):
     def __init__(self, node_name: str, topic_name: str, config: str, names: str,
                  weights: str, postprocess: bool, gpu: bool, myriad: bool):
-        self.node = Node(node_name)
+        super().__init__(node_name)
 
-        self.detector_node = DetectorNode(self.node, topic_name, config, names,
+        self.detector_node = DetectorNode(self , topic_name, config, names,
                                      weights, postprocess, gpu, myriad)
-        
-        timer_period = 0.1  # seconds
+        timer_period = 0.08  # seconds
         self.timer = self.create_timer(timer_period, self.detector_node.publish)

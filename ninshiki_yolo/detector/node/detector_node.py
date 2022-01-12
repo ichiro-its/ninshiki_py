@@ -34,54 +34,57 @@ class DetectorNode:
         self.detection_result = DetectedObjects()
         self.received_frame = None
 
-        self.detections = Detection(config, names, weights, self.detection_result, 
+        self.detection = Detection(config, names, weights, self.detection_result, 
                                    postprocess, gpu, myriad)
+        
+        self.enable_view_detection_result = postprocess
         
         self.image_subscription = node.create_subscription(
             Image, topic_name, self.listener_callback, 10)
-        self.get_logger().info(
+        node.get_logger().info(
             "subscribe image on "
             + self.image_subscription.topic_name)
 
         self.detected_object_publisher = node.create_publisher(
             DetectedObjects, "detection", 10)
-        self.get_logger().info(
+        node.get_logger().info(
             "publish detected images on "
             + self.detected_object_publisher.topic_name)
     
     def listener_callback(self, message: MsgType):
-        self.width = message.cols
-        self.height = message.rows
-        # detection_result = DetectedObjects()
+        if (message.data != []):
+            self.detection.width = message.cols
+            self.detection.height = message.rows
 
-        self.received_frame = np.array(message.data)
-        self.received_frame = np.frombuffer(self.received_frame, dtype=np.uint8)
+            self.received_frame = np.array(message.data)
+            self.received_frame = np.frombuffer(self.received_frame, dtype=np.uint8)
 
-        # Raw Image
-        if (message.quality < 0):
-            self.received_frame = self.received_frame.reshape(message.rows, message.cols, 3)
-        # Compressed Image
-        else:
-            self.received_frame = cv2.imdecode(self.received_frame, cv2.IMREAD_UNCHANGED)
+            # Raw Image
+            if (message.quality < 0):
+                self.received_frame = self.received_frame.reshape(message.rows, message.cols, 3)
+            # Compressed Image
+            else:
+                self.received_frame = cv2.imdecode(self.received_frame, cv2.IMREAD_UNCHANGED)
 
     def publish(self):
-        if (self.received_frame.size != 0):
-            self.detections.pass_image_to_network(self.received_frame)
-            self.detections.detection(self.received_frame, self.detection_result)
-            # self.define_model(self.received_frame)
-            # self.detection(self.received_frame, detection_result)
-            self.detected_object_publisher.publish(self.detection_result)
+        if (self.received_frame is not None):
+            if (self.received_frame.size != 0):
+                self.detection.pass_image_to_network(self.received_frame)
+                self.detection.detection(self.received_frame, self.detection_result)
+                self.detected_object_publisher.publish(self.detection_result)
 
-            if self.enable_view_detection_result:
-                postprocess_frame = draw_detection_result(self.width, self.height,
-                                                          self.received_frame, self.detection_result)
-                cv2.imshow(self.image_subscription.topic_name, postprocess_frame)
-                cv2.waitKey(1)
-                self.get_logger().debug("once, received image and display it")
-            else:
-                self.get_logger().debug("once, received image but not display it")
+                if self.enable_view_detection_result:
+                    postprocess_frame = draw_detection_result(self.detection.width, self.detection.height,
+                                                            self.received_frame, self.detection_result)
+                    cv2.imshow(self.image_subscription.topic_name, postprocess_frame)
+                    cv2.waitKey(1)
+                    # self.get_logger().debug("once, received image and display it")
+                else:
+                    # self.get_logger().debug("once, received image but not display it")
+                    pass
         else:
-            self.get_logger().warn("once, received empty image")
+            # self.get_logger().warn("once, received empty image")
+            pass
 
         # Clear message list
         self.detection_result.detected_objects.clear()
