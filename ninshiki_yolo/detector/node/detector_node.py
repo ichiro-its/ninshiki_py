@@ -29,15 +29,14 @@ from .detection import Detection
 
 class DetectorNode:
     def __init__(self, node: rclpy.node.Node, topic_name: str,
-                 config: str, names: str, weights: str, postprocess: bool, 
+                 config: str, names: str, weights: str, 
                  gpu: bool, myriad: bool):
         self.detection_result = DetectedObjects()
         self.received_frame = None
+        # self.enable_view_detection_result = postprocess
 
         self.detection = Detection(config, names, weights, self.detection_result, 
-                                   postprocess, gpu, myriad)
-        
-        self.enable_view_detection_result = postprocess
+                                   gpu, myriad)
         
         self.image_subscription = node.create_subscription(
             Image, topic_name, self.listener_callback, 10)
@@ -46,7 +45,7 @@ class DetectorNode:
             + self.image_subscription.topic_name)
 
         self.detected_object_publisher = node.create_publisher(
-            DetectedObjects, "detection", 10)
+            DetectedObjects, node.get_name() + "/detection", 10)
         node.get_logger().info(
             "publish detected images on "
             + self.detected_object_publisher.topic_name)
@@ -71,17 +70,18 @@ class DetectorNode:
             if (self.received_frame.size != 0):
                 self.detection.pass_image_to_network(self.received_frame)
                 self.detection.detection(self.received_frame, self.detection_result)
+                # print("detector: ", self.detection_result)
                 self.detected_object_publisher.publish(self.detection_result)
 
-                if self.enable_view_detection_result:
-                    postprocess_frame = draw_detection_result(self.detection.width, self.detection.height,
-                                                            self.received_frame, self.detection_result)
-                    cv2.imshow(self.image_subscription.topic_name, postprocess_frame)
-                    cv2.waitKey(1)
-                    # self.get_logger().debug("once, received image and display it")
-                else:
-                    # self.get_logger().debug("once, received image but not display it")
-                    pass
+                # if self.enable_view_detection_result:
+                #     postprocess_frame = draw_detection_result(self.detection.width, self.detection.height,
+                #                                             self.received_frame, self.detection_result)
+                #     cv2.imshow(self.image_subscription.topic_name, postprocess_frame)
+                #     cv2.waitKey(1)
+                #     # self.get_logger().debug("once, received image and display it")
+                # else:
+                #     # self.get_logger().debug("once, received image but not display it")
+                #     pass
         else:
             # self.get_logger().warn("once, received empty image")
             pass

@@ -29,7 +29,7 @@ from ninshiki_yolo.utils.draw_detection_result import draw_detection_result
 
 class Detection:
     def __init__(self, config: str, names: str, weights: str, detection_result: MsgType,
-                 postprocess: bool = False, gpu: bool = False, myriad: bool = False):
+                 gpu: bool = False, myriad: bool = False):
         self.file_name = names
         self.classes = None
 
@@ -38,7 +38,6 @@ class Detection:
 
         self.width = 0
         self.height = 0
-        self.enable_view_detection_result = postprocess
 
         self.gpu = gpu
         self.myriad = myriad
