@@ -24,17 +24,16 @@ import rclpy
 from rclpy.node import MsgType
 from ninshiki_interfaces.msg import DetectedObjects
 from shisen_interfaces.msg import Image
-from ninshiki_yolo.utils.draw_detection_result import draw_detection_result
+from .viewer import Viewer
 
 
 class ViewerNode:
     def __init__(self, node: rclpy.node.Node, img_topic: str, 
-                 detection_topic: str, postprocess: bool):
+                 detection_topic: str, viewer: Viewer, postprocess: bool):
         self.enable_view_detection_result = postprocess
-        self.detection_result = DetectedObjects()
         self.received_frame = None
-        self.width = 0
-        self.height = 0
+
+        self.viewer = viewer
 
         self.detected_object_subscription = node.create_subscription(
             DetectedObjects, detection_topic, self.listener_callback_msg, 10)
@@ -46,13 +45,12 @@ class ViewerNode:
         node.get_logger().info("subscribe image on " + self.image_subscription.topic_name)
 
     def listener_callback_msg(self, message: MsgType):
-        self.detection_result = message
-        # print("viewer: ", self.detection_result)
+        self.viewer.set_detection_result(message)
 
     def listener_callback_img(self, message: MsgType):
         if (message.data != []):
-            self.width = message.cols
-            self.height = message.rows
+            self.viewer.set_width(message.cols)
+            self.viewer.set_height(message.rows)
 
             self.received_frame = np.array(message.data)
             self.received_frame = np.frombuffer(self.received_frame, dtype=np.uint8)
@@ -64,18 +62,4 @@ class ViewerNode:
             else:
                 self.received_frame = cv2.imdecode(self.received_frame, cv2.IMREAD_UNCHANGED)
             
-            self.show_detection_result()
-
-    def show_detection_result(self):
-        if (self.received_frame is not None):
-            if (self.received_frame.size != 0):
-                if self.enable_view_detection_result:
-
-                    detection_frame = draw_detection_result(self.width, self.height,
-                                                            self.received_frame, self.detection_result)
-                    cv2.imshow(self.image_subscription.topic_name, detection_frame)
-                    cv2.waitKey(1)
-                # self.get_logger().debug("once, received image and display it")
-        else:
-            # self.get_logger().warn("once, received empty image")
-            pass
+            self.viewer.show_detection_result(self.received_frame, self.enable_view_detection_result)

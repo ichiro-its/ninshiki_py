@@ -21,21 +21,32 @@
 import rclpy
 from rclpy.node import MsgType
 from rclpy.node import Node
+
+from ninshiki_yolo.detector.node.detection import Detection
 from ninshiki_yolo.detector.node.detector_node import DetectorNode
+from ninshiki_yolo.viewer.node.viewer import Viewer
 from ninshiki_yolo.viewer.node.viewer_node import ViewerNode
 
 class NinshikiYoloNode(Node):
-    def __init__(self, node_name: str, topic_name: str, config: str, names: str,
-                 weights: str, postprocess: bool, gpu: bool, myriad: bool):
-        super().__init__(node_name)
+    def __init__(self, node: rclpy.node.Node, topic_name: str, postprocess: bool):
+        super().__init__("ninshiki")
 
-        self.detector_node = DetectorNode(self , topic_name, config, names,
-                                          weights, gpu, myriad)
+        self.node = node
+        self.postprocess = postprocess
+        self.topic_name = topic_name
+
+        self.detector_node = None
+        self.viewer_node = None
+
+        self.node.timer = None
     
-        if postprocess:
-            self.viewer_node = ViewerNode(self, topic_name,
-                                          self.detector_node.detected_object_publisher.topic_name, 
-                                          postprocess)
-
+    def set_detector(self, detection: Detection):
+        self.detector_node = DetectorNode(self.node, self.topic_name, detection)
         timer_period = 0.008  # seconds
-        self.timer = self.create_timer(timer_period, self.detector_node.publish)
+        self.node.timer = self.node.create_timer(timer_period, self.detector_node.publish)
+    
+    def set_viewer(self, viewer: Viewer):
+        if self.postprocess:
+            self.viewer_node = ViewerNode(self.node, self.topic_name,
+                                        self.detector_node.detected_object_publisher.topic_name,
+                                        viewer, self.postprocess)

@@ -20,16 +20,19 @@
 
 import cv2
 import numpy as np
-import rclpy
+import os
 from rclpy.node import MsgType
-from rclpy.node import Node
 from ninshiki_interfaces.msg import DetectedObject, DetectedObjects
 from shisen_interfaces.msg import Image
 from ninshiki_yolo.utils.draw_detection_result import draw_detection_result
 
 class Detection:
-    def __init__(self, config: str, names: str, weights: str, detection_result: MsgType,
-                 gpu: bool = False, myriad: bool = False):
+    def __init__(self, 
+                 config: str = os.path.expanduser('~') + "/yolo_model/config.cfg", 
+                 names: str = os.path.expanduser('~') + "/yolo_model/obj.names",
+                 weights: str = os.path.expanduser('~')+ "/yolo_model/yolo_weights.weights",
+                 gpu: bool = False, 
+                 myriad: bool = False):
         self.file_name = names
         self.classes = None
 
@@ -68,8 +71,8 @@ class Detection:
 
     def detection(self, image: np.ndarray, detection_result: MsgType):
         # Get object name, score, and location
-        confThreshold: float = 0.4
-        nmsThreshold: float = 0.3
+        confident_threshold = 0.4
+        nms_threshold = 0.3
 
         classId = np.argmax(self.outs[0][0][5:])
         frame_h, frame_w, frame_c = image.shape
@@ -92,7 +95,7 @@ class Detection:
                 confidences.append(float(confidence))
                 boxes.append([x, y, w, h])
 
-        indices = cv2.dnn.NMSBoxes(boxes, confidences, confThreshold, nmsThreshold)
+        indices = cv2.dnn.NMSBoxes(boxes, confidences, confident_threshold, nms_threshold)
         # Get object location
         for i in indices:
             box = boxes[i]
@@ -101,21 +104,24 @@ class Detection:
             w = box[2]
             h = box[3]
 
-            self.add_detected_object(self.classes[classIds[i]], confidences[i],
-                                     x / self.width, y / self.height,
-                                     (x+w) / self.width, (y+h) / self.height,
-                                     detection_result)
+            # Add detected object into list
+            detection_object = DetectedObject()
 
-    def add_detected_object(self, label: str, score: float,
-                            x0: float, y0: float, x1: float, y1: float,
-                            detection_result: MsgType):
-        detection_object = DetectedObject()
+            detection_object.label = self.classes[classIds[i]]
+            detection_object.score = confidences[i]
+            detection_object.left = x / self.width
+            detection_object.top = y / self.height
+            detection_object.right = (x+w) / self.width
+            detection_object.bottom = (y+h) / self.height
 
-        detection_object.label = label
-        detection_object.score = score
-        detection_object.left = x0
-        detection_object.top = y0
-        detection_object.right = x1
-        detection_object.bottom = y1
+            detection_result.detected_objects.append(detection_object)
+    
+    def set_width(self, width):
+        self.width = width
+    
+    def set_height(self, height):
+        self.height = height
 
-        detection_result.detected_objects.append(detection_object)
+    def load_data():
+        # Load data from settei
+        pass

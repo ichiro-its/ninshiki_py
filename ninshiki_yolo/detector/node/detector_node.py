@@ -28,32 +28,30 @@ from ninshiki_yolo.utils.draw_detection_result import draw_detection_result
 from .detection import Detection
 
 class DetectorNode:
-    def __init__(self, node: rclpy.node.Node, topic_name: str,
-                 config: str, names: str, weights: str, 
-                 gpu: bool, myriad: bool):
+    def __init__(self, node: rclpy.node.Node, sub_topic: str,
+                 detection: Detection):
+        self.node = node
         self.detection_result = DetectedObjects()
         self.received_frame = None
-        # self.enable_view_detection_result = postprocess
 
-        self.detection = Detection(config, names, weights, self.detection_result, 
-                                   gpu, myriad)
+        self.detection = detection
         
-        self.image_subscription = node.create_subscription(
-            Image, topic_name, self.listener_callback, 10)
-        node.get_logger().info(
+        self.image_subscription = self.node.create_subscription(
+            Image, sub_topic, self.listener_callback, 10)
+        self.node.get_logger().info(
             "subscribe image on "
             + self.image_subscription.topic_name)
 
-        self.detected_object_publisher = node.create_publisher(
-            DetectedObjects, node.get_name() + "/detection", 10)
-        node.get_logger().info(
+        self.detected_object_publisher = self.node.create_publisher(
+            DetectedObjects, self.node.get_name() + "/detection", 10)
+        self.node.get_logger().info(
             "publish detected images on "
             + self.detected_object_publisher.topic_name)
     
     def listener_callback(self, message: MsgType):
         if (message.data != []):
-            self.detection.width = message.cols
-            self.detection.height = message.rows
+            self.detection.set_width(message.cols)
+            self.detection.set_height(message.rows)
 
             self.received_frame = np.array(message.data)
             self.received_frame = np.frombuffer(self.received_frame, dtype=np.uint8)
