@@ -18,36 +18,70 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
+import cv2
+import numpy as np
 import rclpy
 from rclpy.node import MsgType
-from rclpy.node import Node
 
-from ninshiki_yolo.detector.node.detection import Detection
-from ninshiki_yolo.detector.node.detector_node import DetectorNode
-from ninshiki_yolo.viewer.node.viewer import Viewer
-from ninshiki_yolo.viewer.node.viewer_node import ViewerNode
+from ninshiki_interfaces.msg import DetectedObjects
+from shisen_interfaces.msg import Image
+from ninshiki_yolo.detector.detection import Detection
+
 
 class NinshikiYoloNode:
-    def __init__(self, node: rclpy.node.Node, topic_name: str, postprocess: bool):
+    def __init__(self, node: rclpy.node.Node, topic_name: str, 
+                 detection: Detection):
         self.node = node
-        self.postprocess = postprocess
         self.topic_name = topic_name
 
-        self.detector_node = None
-        self.viewer_node = None
+        self.detection_result = DetectedObjects()
+        self.received_frame = None
+
+        self.detection = detection
 
         self.node.timer = None
+
+        self.image_subscription = self.node.create_subscription(
+            Image, self.topic_name, self.listener_callback, 10)
+        self.node.get_logger().info(
+            "subscribe image on "
+            + self.image_subscription.topic_name)
+
+        self.detected_object_publisher = self.node.create_publisher(
+            DetectedObjects, self.node.get_name() + "/detection", 10)
+        self.node.get_logger().info(
+            "publish detected images on "
+            + self.detected_object_publisher.topic_name)
     
-    def set_detector(self, detection: Detection):
-        self.detector_node = DetectorNode(self.node, self.topic_name, detection)
+    def set_detector(self):
         timer_period = 0.008  # seconds
         self.node.timer = self.node.create_timer(timer_period, self.publish)
     
-    def set_viewer(self, viewer: Viewer):
-        if self.postprocess:
-            self.viewer_node = ViewerNode(self.node, self.topic_name,
-                                        self.detector_node.detected_object_publisher.topic_name,
-                                        viewer, self.postprocess)
+    def listener_callback(self, message: MsgType):
+        if (message.data != []):
+            self.detection.set_width(message.cols)
+            self.detection.set_height(message.rows)
+
+            self.received_frame = np.array(message.data)
+            self.received_frame = np.frombuffer(self.received_frame, dtype=np.uint8)
+
+            # Raw Image
+            if (message.quality < 0):
+                self.received_frame = self.received_frame.reshape(message.rows, message.cols, 3)
+            # Compressed Image
+            else:
+                self.received_frame = cv2.imdecode(self.received_frame, cv2.IMREAD_UNCHANGED)
 
     def publish(self):
-        self.detector_node.publish()
+        if (self.received_frame is not None):
+            if (self.received_frame.size != 0):
+                self.detection.pass_image_to_network(self.received_frame)
+                self.detection.detection(self.received_frame, self.detection_result)
+                # print("detector: ", self.detection_result)
+                self.detected_object_publisher.publish(self.detection_result)
+        else:
+            # self.get_logger().warn("once, received empty image")
+            pass
+
+        # Clear message list
+        self.detection_result.detected_objects.clear()

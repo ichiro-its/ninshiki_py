@@ -29,20 +29,21 @@ from .viewer import Viewer
 
 class ViewerNode:
     def __init__(self, node: rclpy.node.Node, img_topic: str, 
-                 detection_topic: str, viewer: Viewer, postprocess: bool):
-        self.enable_view_detection_result = postprocess
+                 detection_topic: str, viewer: Viewer):
+        # self.enable_view_detection_result = postprocess
+        self.node = node
         self.received_frame = None
 
         self.viewer = viewer
 
-        self.detected_object_subscription = node.create_subscription(
+        self.detected_object_subscription = self.node.create_subscription(
             DetectedObjects, detection_topic, self.listener_callback_msg, 10)
-        node.get_logger().info("subscribe detection result on "
+        self.node.get_logger().info("subscribe detection result on "
                                + self.detected_object_subscription.topic_name)
 
-        self.image_subscription = node.create_subscription(
+        self.image_subscription = self.node.create_subscription(
             Image, img_topic, self.listener_callback_img, 10)
-        node.get_logger().info("subscribe image on " + self.image_subscription.topic_name)
+        self.node.get_logger().info("subscribe image on " + self.image_subscription.topic_name)
 
     def listener_callback_msg(self, message: MsgType):
         self.viewer.set_detection_result(message)
@@ -62,4 +63,4 @@ class ViewerNode:
             else:
                 self.received_frame = cv2.imdecode(self.received_frame, cv2.IMREAD_UNCHANGED)
             
-            self.viewer.show_detection_result(self.received_frame, self.enable_view_detection_result)
+            self.viewer.show_detection_result(self.received_frame)

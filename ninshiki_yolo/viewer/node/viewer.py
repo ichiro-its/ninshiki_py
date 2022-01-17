@@ -31,15 +31,15 @@ class Viewer:
         self.width = 0
         self.height = 0
 
-    def show_detection_result(self, image: np.ndarray, postprocess):
+    def show_detection_result(self, image: np.ndarray):
         if (image is not None):
             if (image.size != 0):
-                if postprocess:
+                # if postprocess:
 
-                    detection_frame = draw_detection_result(self.width, self.height,
-                                                            image, self.detection_result)
-                    cv2.imshow("viewer", detection_frame)
-                    cv2.waitKey(1)
+                detection_frame = draw_detection_result(self.width, self.height,
+                                                        image, self.detection_result)
+                cv2.imshow("viewer", detection_frame)
+                cv2.waitKey(1)
                 # self.get_logger().debug("once, received image and display it")
         else:
             # self.get_logger().warn("once, received empty image")
