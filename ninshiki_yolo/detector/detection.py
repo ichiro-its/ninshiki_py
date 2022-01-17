@@ -22,17 +22,16 @@ import cv2
 import numpy as np
 import os
 from rclpy.node import MsgType
-from ninshiki_interfaces.msg import DetectedObject, DetectedObjects
-from shisen_interfaces.msg import Image
-from ninshiki_yolo.utils.draw_detection_result import draw_detection_result
+from ninshiki_interfaces.msg import DetectedObject
+
 
 class Detection:
     def __init__(self, gpu: bool = False, myriad: bool = False):
         self.file_name = os.path.expanduser('~') + "/yolo_model/obj.names"
         self.classes = None
 
-        config = os.path.expanduser('~') + "/yolo_model/config.cfg" 
-        weights = os.path.expanduser('~')+ "/yolo_model/yolo_weights.weights"
+        config = os.path.expanduser('~') + "/yolo_model/config.cfg"
+        weights = os.path.expanduser('~') + "/yolo_model/yolo_weights.weights"
         self.net = cv2.dnn.readNetFromDarknet(config, weights)
         self.outs = None
 
@@ -45,7 +44,7 @@ class Detection:
     def pass_image_to_network(self, image: np.ndarray):
         with open(self.file_name, 'rt') as f:
             self.classes = f.read().rstrip('\n').split('\n')
-        
+
         self.net.getLayerNames()
         layerOutput = self.net.getUnconnectedOutLayersNames()
 
@@ -61,7 +60,8 @@ class Detection:
 
         input_width = 416
         input_height = 416
-        blob = cv2.dnn.blobFromImage(image, 1/255, (input_width, input_height), [0, 0, 0], 1, crop=False)
+        blob = cv2.dnn.blobFromImage(image, 1/255, (input_width, input_height),
+                                     [0, 0, 0], 1, crop=False)
 
         self.net.setInput(blob)
         self.outs = self.net.forward(layerOutput)
@@ -112,10 +112,10 @@ class Detection:
             detection_object.bottom = (y+h) / self.height
 
             detection_result.detected_objects.append(detection_object)
-    
+
     def set_width(self, width):
         self.width = width
-    
+
     def set_height(self, height):
         self.height = height
 

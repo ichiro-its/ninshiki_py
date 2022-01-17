@@ -25,20 +25,21 @@ from rclpy.node import Node
 from ninshiki_yolo.detector.detection import Detection
 from ninshiki_yolo.node.ninshiki_yolo_node import NinshikiYoloNode
 
+
 def main(args=None):
     rclpy.init(args=args)
 
     parser = argparse.ArgumentParser()
     parser.add_argument('topic', help='specify topic name to subscribe')
-    parser.add_argument('--GPU', help='if we chose the computation using GPU', type=int,
-                        choices=[0, 1], default=0)
-    parser.add_argument('--MYRIAD', help='if we chose the computation using Compute Stick', type=int,
-                        choices=[0, 1], default=0)
+    parser.add_argument('--GPU', help='if we chose the computation using GPU',
+                        type=int, choices=[0, 1], default=0)
+    parser.add_argument('--MYRIAD', help='if we chose the computation using Compute Stick',
+                        type=int, choices=[0, 1], default=0)
     arg = parser.parse_args()
 
     node = Node("ninshiki_yolo")
 
-    detection = Detection(gpu = arg.GPU, myriad = arg.MYRIAD)
+    detection = Detection(gpu=arg.GPU, myriad=arg.MYRIAD)
     detector_node = NinshikiYoloNode(node, arg.topic, detection)
 
     detector_node.set_detector()

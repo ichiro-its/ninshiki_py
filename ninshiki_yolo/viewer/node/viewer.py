@@ -20,7 +20,6 @@
 
 import cv2
 import numpy as np
-from rclpy.node import MsgType
 from ninshiki_interfaces.msg import DetectedObjects
 from ninshiki_yolo.utils.draw_detection_result import draw_detection_result
 
@@ -47,7 +46,7 @@ class Viewer:
 
     def set_width(self, width):
         self.width = width
-    
+
     def set_height(self, height):
         self.height = height
 

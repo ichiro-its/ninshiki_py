@@ -24,6 +24,7 @@ from rclpy.node import Node
 from ninshiki_yolo.viewer.node.viewer import Viewer
 from ninshiki_yolo.viewer.node.viewer_node import ViewerNode
 
+
 def main(args=None):
     rclpy.init(args=args)
 

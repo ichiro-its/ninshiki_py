@@ -28,7 +28,7 @@ from .viewer import Viewer
 
 
 class ViewerNode:
-    def __init__(self, node: rclpy.node.Node, img_topic: str, 
+    def __init__(self, node: rclpy.node.Node, img_topic: str,
                  detection_topic: str, viewer: Viewer):
         # self.enable_view_detection_result = postprocess
         self.node = node
@@ -39,7 +39,7 @@ class ViewerNode:
         self.detected_object_subscription = self.node.create_subscription(
             DetectedObjects, detection_topic, self.listener_callback_msg, 10)
         self.node.get_logger().info("subscribe detection result on "
-                               + self.detected_object_subscription.topic_name)
+                                    + self.detected_object_subscription.topic_name)
 
         self.image_subscription = self.node.create_subscription(
             Image, img_topic, self.listener_callback_img, 10)
@@ -62,5 +62,5 @@ class ViewerNode:
             # Compressed Image
             else:
                 self.received_frame = cv2.imdecode(self.received_frame, cv2.IMREAD_UNCHANGED)
-            
+
             self.viewer.show_detection_result(self.received_frame)

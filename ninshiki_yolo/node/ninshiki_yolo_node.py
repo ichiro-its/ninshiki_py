@@ -29,7 +29,7 @@ from ninshiki_yolo.detector.detection import Detection
 
 
 class NinshikiYoloNode:
-    def __init__(self, node: rclpy.node.Node, topic_name: str, 
+    def __init__(self, node: rclpy.node.Node, topic_name: str,
                  detection: Detection):
         self.node = node
         self.topic_name = topic_name
@@ -52,11 +52,11 @@ class NinshikiYoloNode:
         self.node.get_logger().info(
             "publish detected images on "
             + self.detected_object_publisher.topic_name)
-    
+
     def set_detector(self):
         timer_period = 0.008  # seconds
         self.node.timer = self.node.create_timer(timer_period, self.publish)
-    
+
     def listener_callback(self, message: MsgType):
         if (message.data != []):
             self.detection.set_width(message.cols)
