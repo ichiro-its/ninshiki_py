@@ -27,15 +27,12 @@ from shisen_interfaces.msg import Image
 from ninshiki_yolo.utils.draw_detection_result import draw_detection_result
 
 class Detection:
-    def __init__(self, 
-                 config: str = os.path.expanduser('~') + "/yolo_model/config.cfg", 
-                 names: str = os.path.expanduser('~') + "/yolo_model/obj.names",
-                 weights: str = os.path.expanduser('~')+ "/yolo_model/yolo_weights.weights",
-                 gpu: bool = False, 
-                 myriad: bool = False):
-        self.file_name = names
+    def __init__(self, gpu: bool = False, myriad: bool = False):
+        self.file_name = os.path.expanduser('~') + "/yolo_model/obj.names"
         self.classes = None
 
+        config = os.path.expanduser('~') + "/yolo_model/config.cfg" 
+        weights = os.path.expanduser('~')+ "/yolo_model/yolo_weights.weights"
         self.net = cv2.dnn.readNetFromDarknet(config, weights)
         self.outs = None
 
@@ -62,9 +59,9 @@ class Detection:
             self.net.setPreferableBackend(cv2.dnn.DNN_BACKEND_OPENCV)
             self.net.setPreferableTarget(cv2.dnn.DNN_TARGET_CPU)
 
-        inpWidth = 416
-        inpHeight = 416
-        blob = cv2.dnn.blobFromImage(image, 1/255, (inpWidth, inpHeight), [0, 0, 0], 1, crop=False)
+        input_width = 416
+        input_height = 416
+        blob = cv2.dnn.blobFromImage(image, 1/255, (input_width, input_height), [0, 0, 0], 1, crop=False)
 
         self.net.setInput(blob)
         self.outs = self.net.forward(layerOutput)
@@ -74,24 +71,24 @@ class Detection:
         confident_threshold = 0.4
         nms_threshold = 0.3
 
-        classId = np.argmax(self.outs[0][0][5:])
+        class_id = np.argmax(self.outs[0][0][5:])
         frame_h, frame_w, frame_c = image.shape
-        classIds = []
+        class_ids = []
         confidences = []
         boxes = []
 
         for out in self.outs:
             for detection in out:
                 scores = detection[5:]
-                classId = np.argmax(scores)
-                confidence = scores[classId]
+                class_id = np.argmax(scores)
+                confidence = scores[class_id]
                 c_x = int(detection[0] * frame_w)
                 c_y = int(detection[1] * frame_h)
                 w = int(detection[2] * frame_w)
                 h = int(detection[3] * frame_h)
                 x = int(c_x - w / 2)
                 y = int(c_y - h / 2)
-                classIds.append(classId)
+                class_ids.append(class_id)
                 confidences.append(float(confidence))
                 boxes.append([x, y, w, h])
 
@@ -107,7 +104,7 @@ class Detection:
             # Add detected object into list
             detection_object = DetectedObject()
 
-            detection_object.label = self.classes[classIds[i]]
+            detection_object.label = self.classes[class_ids[i]]
             detection_object.score = confidences[i]
             detection_object.left = x / self.width
             detection_object.top = y / self.height

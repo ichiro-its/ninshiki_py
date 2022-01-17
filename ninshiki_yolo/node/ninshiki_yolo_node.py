@@ -27,10 +27,8 @@ from ninshiki_yolo.detector.node.detector_node import DetectorNode
 from ninshiki_yolo.viewer.node.viewer import Viewer
 from ninshiki_yolo.viewer.node.viewer_node import ViewerNode
 
-class NinshikiYoloNode(Node):
+class NinshikiYoloNode:
     def __init__(self, node: rclpy.node.Node, topic_name: str, postprocess: bool):
-        super().__init__("ninshiki")
-
         self.node = node
         self.postprocess = postprocess
         self.topic_name = topic_name
@@ -43,10 +41,13 @@ class NinshikiYoloNode(Node):
     def set_detector(self, detection: Detection):
         self.detector_node = DetectorNode(self.node, self.topic_name, detection)
         timer_period = 0.008  # seconds
-        self.node.timer = self.node.create_timer(timer_period, self.detector_node.publish)
+        self.node.timer = self.node.create_timer(timer_period, self.publish)
     
     def set_viewer(self, viewer: Viewer):
         if self.postprocess:
             self.viewer_node = ViewerNode(self.node, self.topic_name,
                                         self.detector_node.detected_object_publisher.topic_name,
                                         viewer, self.postprocess)
+
+    def publish(self):
+        self.detector_node.publish()
