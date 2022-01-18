@@ -42,8 +42,6 @@ def main(args=None):
     detection = Detection(gpu=arg.GPU, myriad=arg.MYRIAD)
     detector_node = NinshikiYoloNode(node, arg.topic, detection)
 
-    detector_node.set_detector()
-
     rclpy.spin(detector_node.node)
 
     detector_node.destroy_node()

@@ -39,8 +39,6 @@ class NinshikiYoloNode:
 
         self.detection = detection
 
-        self.node.timer = None
-
         self.image_subscription = self.node.create_subscription(
             Image, self.topic_name, self.listener_callback, 10)
         self.node.get_logger().info(
@@ -52,8 +50,8 @@ class NinshikiYoloNode:
         self.node.get_logger().info(
             "publish detected images on "
             + self.detected_object_publisher.topic_name)
-
-    def set_detector(self):
+        
+        # create timer
         timer_period = 0.008  # seconds
         self.node.timer = self.node.create_timer(timer_period, self.publish)
 
