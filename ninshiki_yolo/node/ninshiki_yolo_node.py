@@ -50,7 +50,7 @@ class NinshikiYoloNode:
         self.node.get_logger().info(
             "publish detected images on "
             + self.detected_object_publisher.topic_name)
-        
+
         # create timer
         timer_period = 0.008  # seconds
         self.node.timer = self.node.create_timer(timer_period, self.publish)
