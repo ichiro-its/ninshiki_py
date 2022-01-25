@@ -20,6 +20,7 @@
 
 import cv2
 import os
+import unittest
 from rclpy.node import MsgType
 import shutil
 import wget
@@ -39,88 +40,90 @@ class Object:
         self.bottom = bottom
 
 
-def download(url: str, directory: str):
-    file_name_changed = ""
-    dir_path = os.path.expanduser('~') + directory
-    # check if directory not exist
-    if not os.path.isdir(dir_path):
-        os.makedirs(dir_path)
+class TestDetection(unittest.TestCase):
+    def download(self, url: str, directory: str):
+        file_name_changed = ""
+        dir_path = os.path.expanduser('~') + directory
+        # check if directory not exist
+        if not os.path.isdir(dir_path):
+            os.makedirs(dir_path)
 
-    file_name = url.split("/")[-1]
-    file_extension = file_name.split(".")[-1]
-    
-    file_path = dir_path + file_name
-    # check if file not exist
-    if not os.path.isfile(file_path):
-        wget.download(url, out=dir_path)
+        file_name = url.split("/")[-1]
+        file_extension = file_name.split(".")[-1]
 
-    # change file name
-    if file_extension != "jpg":
-        if file_extension == "cfg":
-            file_name_changed = "config.cfg"
-        elif file_extension == "weights":
-            file_name_changed = "yolo_weights.weights"
-        elif file_extension == "names":
-            file_name_changed = "obj.names"
-    
-        old_file = os.path.join(dir_path, file_name)
-        new_file = os.path.join(dir_path, file_name_changed)
-        os.rename(old_file, new_file)
-    
+        file_path = dir_path + file_name
+        # check if file not exist
+        if not os.path.isfile(file_path):
+            wget.download(url, out=dir_path)
 
-def make_detected_objects() -> list:
-    objects = []
-    # need update when change the model
-    objects.append(Object('dog', 0.83, 0.16, 0.38, 0.5, 0.9))
-    objects.append(Object('car', 0.73, 0.61, 0.14, 0.89, 0.3))
+        # change file name
+        if file_extension != "jpg":
+            if file_extension == "cfg":
+                file_name_changed = "config.cfg"
+            elif file_extension == "weights":
+                file_name_changed = "yolo_weights.weights"
+            elif file_extension == "names":
+                file_name_changed = "obj.names"
 
-    return objects
+            old_file = os.path.join(dir_path, file_name)
+            new_file = os.path.join(dir_path, file_name_changed)
+            os.rename(old_file, new_file)
 
+    def make_detected_objects(self) -> list:
+        objects = []
+        # need update when change the model
+        objects.append(Object('dog', 0.83, 0.16, 0.38, 0.5, 0.9))
+        objects.append(Object('car', 0.73, 0.61, 0.14, 0.89, 0.3))
 
-def delete_folder(directory: str):
-    dir_path = os.path.expanduser('~') + directory
-    shutil.rmtree(dir_path)
+        return objects
 
+    def delete_folder(self, directory: str):
+        dir_path = os.path.expanduser('~') + directory
+        shutil.rmtree(dir_path)
 
-def check_detected_objects(detected_objects: list, detection_result: MsgType):
-    for i in range(len(detection_result.detected_objects)):
-        assert detection_result.detected_objects[i].label == detected_objects[i].label
-        # print(type(detected_objects[i].score))
-        # print(round(detected_objects[i].score, 2))
-        assert detection_result.detected_objects[i].score == round(detected_objects[i].score, 2)
-        assert detection_result.detected_objects[i].left == round(detected_objects[i].left, 2)
-        assert detection_result.detected_objects[i].right == round(detected_objects[i].right, 2)
-        assert detection_result.detected_objects[i].top == round(detected_objects[i].top, 2)
-        assert detection_result.detected_objects[i].bottom == round(detected_objects[i].bottom, 2)
+    def check_detected_objects(self, detected_objects: list, detection_result: MsgType):
+        for i in range(len(detection_result.detected_objects)):
+            self.assertEqual(detection_result.detected_objects[i].label, detected_objects[i].label)
+            self.assertAlmostEqual(detection_result.detected_objects[i].score,
+                                   detected_objects[i].score, places=2)
+            self.assertAlmostEqual(detection_result.detected_objects[i].left,
+                                   detected_objects[i].left, places=2)
+            self.assertAlmostEqual(detection_result.detected_objects[i].right,
+                                   detected_objects[i].right, places=2)
+            self.assertAlmostEqual(detection_result.detected_objects[i].top,
+                                   detected_objects[i].top, places=2)
+            self.assertAlmostEqual(detection_result.detected_objects[i].bottom,
+                                   detected_objects[i].bottom, places=2)
 
+    def test_detection(self):
+        # download image, config, class name, and weights
+        self.download("https://raw.githubusercontent.com/pjreddie/darknet/master/"
+                      "data/dog.jpg", "/example_img/")
+        self.download("https://raw.githubusercontent.com/pjreddie/darknet/master/"
+                      "cfg/yolov3-tiny.cfg", "/yolo_model/")
+        self.download("https://raw.githubusercontent.com/pjreddie/darknet/master/"
+                      "data/coco.names", "/yolo_model/")
+        self.download("https://pjreddie.com/media/files/yolov3-tiny.weights",
+                      "/yolo_model/")
 
-def test_detection():
-    # download image, config, class name, and weights
-    download("https://raw.githubusercontent.com/pjreddie/darknet/master/data/dog.jpg",
-             "/example_img/")
-    download("https://raw.githubusercontent.com/pjreddie/darknet/master/cfg/yolov3-tiny.cfg",
-             "/yolo_model/")
-    download("https://raw.githubusercontent.com/pjreddie/darknet/master/data/coco.names",
-             "/yolo_model/")
-    download("https://pjreddie.com/media/files/yolov3-tiny.weights",
-             "/yolo_model/")
+        image_path = os.path.expanduser('~') + "/example_img/dog.jpg"
+        image = cv2.imread(image_path)
+        print(image_path)
+        detection_result = DetectedObjects()
 
-    image_path = os.path.expanduser('~') + "/example_img/dog.jpg"
-    image = cv2.imread(image_path)
-    detection_result = DetectedObjects()
+        detected_objects = self.make_detected_objects()
 
-    detected_objects = make_detected_objects()
+        detection = Detection()
+        detection.set_width(image.shape[1])
+        detection.set_height(image.shape[0])
+        detection.pass_image_to_network(image)
+        detection.detection(image, detection_result)
 
-    detection = Detection()
-    detection.set_width(image.shape[1])
-    detection.set_height(image.shape[0])
-    detection.pass_image_to_network(image)
-    detection.detection(image, detection_result)
-    assert detection.width == 768
-    assert detection.height == 576
-    assert detection.gpu is False
-    assert detection.myriad is False
-    check_detected_objects(detected_objects, detection_result)
+        self.assertEqual(detection.width, 768)
+        self.assertEqual(detection.height, 576)
+        self.assertFalse(detection.gpu)
+        self.assertFalse(detection.myriad)
+        self.check_detected_objects(detected_objects, detection_result)
 
-    delete_folder("/example_img/")
-    delete_folder("/yolo_model/")
+        self.delete_folder("/example_img/")
+        self.delete_folder("/yolo_model/")
