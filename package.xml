@@ -9,8 +9,10 @@
   <exec_depend>ninshiki_interfaces</exec_depend>
   <exec_depend>shisen_interfaces</exec_depend>
   <exec_depend>rclpy</exec_depend>
-  <exec_depend>opencv-python</exec_depend>
-  <exec_depend>numpy</exec_depend>
+  <exec_depend>python-numpy</exec_depend>
+  <exec_depend>python-unittest2</exec_depend>
+  <exec_depend>python3-opencv</exec_depend>
+  <exec_depend>wget</exec_depend>
   <test_depend>ament_copyright</test_depend>
   <test_depend>ament_flake8</test_depend>
   <test_depend>ament_pep257</test_depend>
