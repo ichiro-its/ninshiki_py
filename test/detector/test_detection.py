@@ -22,7 +22,6 @@ import cv2
 import os
 import unittest
 from rclpy.node import MsgType
-import shutil
 import wget
 
 from ninshiki_interfaces.msg import DetectedObjects
@@ -79,7 +78,9 @@ class TestDetection(unittest.TestCase):
 
     def delete_folder(self, directory: str):
         dir_path = os.path.expanduser('~') + directory
-        shutil.rmtree(dir_path)
+        for f in os.listdir(dir_path):
+            os.remove(os.path.join(dir_path, f))
+        os.rmdir(dir_path)
 
     def check_detected_objects(self, detected_objects: list, detection_result: MsgType):
         for i in range(len(detection_result.detected_objects)):
