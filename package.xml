@@ -4,14 +4,14 @@
   <name>ninshiki_yolo</name>
   <version>0.1.0</version>
   <description>An object detection package with YOLO</description>
-  <maintainer email="nathaterbaik@gmail.com">ichiro</maintainer>
+  <maintainer email="nathanael.hutama24@gmail.com">ichiro</maintainer>
   <license>MIT License</license>
   <exec_depend>ninshiki_interfaces</exec_depend>
-  <exec_depend>shisen_interfaces</exec_depend>
-  <exec_depend>rclpy</exec_depend>
   <exec_depend>python-numpy</exec_depend>
   <exec_depend>python-unittest2</exec_depend>
   <exec_depend>python3-opencv</exec_depend>
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>shisen_interfaces</exec_depend>
   <exec_depend>wget</exec_depend>
   <test_depend>ament_copyright</test_depend>
   <test_depend>ament_flake8</test_depend>
