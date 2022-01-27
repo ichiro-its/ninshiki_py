@@ -82,19 +82,29 @@ class TestDetection(unittest.TestCase):
             os.remove(os.path.join(dir_path, f))
         os.rmdir(dir_path)
 
-    def check_detected_objects(self, detected_objects: list, detection_result: MsgType):
-        for i in range(len(detection_result.detected_objects)):
-            self.assertEqual(detection_result.detected_objects[i].label, detected_objects[i].label)
-            self.assertAlmostEqual(detection_result.detected_objects[i].score,
-                                   detected_objects[i].score, places=2)
-            self.assertAlmostEqual(detection_result.detected_objects[i].left,
-                                   detected_objects[i].left, places=2)
-            self.assertAlmostEqual(detection_result.detected_objects[i].right,
-                                   detected_objects[i].right, places=2)
-            self.assertAlmostEqual(detection_result.detected_objects[i].top,
-                                   detected_objects[i].top, places=2)
-            self.assertAlmostEqual(detection_result.detected_objects[i].bottom,
-                                   detected_objects[i].bottom, places=2)
+    def iou(self, detected_object: list, detection_result: MsgType) -> float:
+        # Determine the the intersection rectangle
+        x_min = max(detected_object.left, detection_result.left)
+        y_min = max(detected_object.top, detection_result.top)
+        x_max = min(detected_object.right, detection_result.right)
+        y_max = min(detected_object.bottom, detection_result.bottom)
+
+        # Compute the area of intersection rectangle
+        inter_area = max(0.0, x_max - x_min) * max(0.0, y_max - y_min)
+
+        # Compute the area of the each input rectangle
+        detected_object_width = detected_object.right - detected_object.left
+        detected_object_height = detected_object.bottom - detected_object.top
+        detected_object_area = detected_object_width * detected_object_height
+
+        detection_result_width = detection_result.right - detection_result.left
+        detection_result_height = detection_result.bottom - detection_result.top
+        detection_result_area = detection_result_width * detection_result_height
+
+        # Compute the intersection over union
+        iou = inter_area / float(detected_object_area + detection_result_area - inter_area)
+
+        return iou
 
     def test_detection(self):
         # download image, config, class name, and weights
@@ -109,7 +119,6 @@ class TestDetection(unittest.TestCase):
 
         image_path = os.path.expanduser('~') + "/example_img/dog.jpg"
         image = cv2.imread(image_path)
-        print(image_path)
         detection_result = DetectedObjects()
 
         detected_objects = self.make_detected_objects()
@@ -124,7 +133,14 @@ class TestDetection(unittest.TestCase):
         self.assertEqual(detection.height, 576)
         self.assertFalse(detection.gpu)
         self.assertFalse(detection.myriad)
-        self.check_detected_objects(detected_objects, detection_result)
+
+        for i in range(len(detection_result.detected_objects)):
+            # check detected object name is the same
+            self.assertEqual(detection_result.detected_objects[i].label, detected_objects[i].label)
+
+            # Calculate the Intersection over Union ratio
+            score = self.iou(detected_objects[i], detection_result.detected_objects[i])
+            self.assertGreaterEqual(score, 0.9)
 
         self.delete_folder("/example_img/")
         self.delete_folder("/yolo_model/")
