@@ -126,11 +126,13 @@ class TestDetection(unittest.TestCase):
         detection = Detection()
         detection.set_width(image.shape[1])
         detection.set_height(image.shape[0])
-        detection.pass_image_to_network(image)
-        detection.detection(image, detection_result)
 
         self.assertEqual(detection.width, 768)
         self.assertEqual(detection.height, 576)
+
+        detection.pass_image_to_network(image)
+        detection.detection(image, detection_result)
+
         self.assertFalse(detection.gpu)
         self.assertFalse(detection.myriad)
 

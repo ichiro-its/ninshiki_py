@@ -92,26 +92,29 @@ class Detection:
                 confidences.append(float(confidence))
                 boxes.append([x, y, w, h])
 
-        indices = cv2.dnn.NMSBoxes(boxes, confidences, confident_threshold, nms_threshold)
-        # Get object location
-        for i in indices:
-            box = np.array(boxes)[i]
-            x = np.array(box)[0]
-            y = np.array(box)[1]
-            w = np.array(box)[2]
-            h = np.array(box)[3]
+        if len(boxes):
+            indices = cv2.dnn.NMSBoxes(boxes, confidences, confident_threshold, nms_threshold)
+            # Get object location
+            for i in indices:
+                if i < (len(boxes) - 1):
+                    box = np.array(boxes)[i]
+                    if len(box) == 4:
+                        x = np.array(box)[0]
+                        y = np.array(box)[1]
+                        w = np.array(box)[2]
+                        h = np.array(box)[3]
 
-            # Add detected object into list
-            detection_object = DetectedObject()
+                        # Add detected object into list
+                        detection_object = DetectedObject()
 
-            detection_object.label = self.classes[class_ids[i]]
-            detection_object.score = confidences[i]
-            detection_object.left = x / self.width
-            detection_object.top = y / self.height
-            detection_object.right = (x+w) / self.width
-            detection_object.bottom = (y+h) / self.height
+                        detection_object.label = self.classes[class_ids[i]]
+                        detection_object.score = confidences[i]
+                        detection_object.left = x / self.width
+                        detection_object.top = y / self.height
+                        detection_object.right = (x+w) / self.width
+                        detection_object.bottom = (y+h) / self.height
 
-            detection_result.detected_objects.append(detection_object)
+                        detection_result.detected_objects.append(detection_object)
 
     def set_width(self, width):
         self.width = width
