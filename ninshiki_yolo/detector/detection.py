@@ -96,10 +96,10 @@ class Detection:
         # Get object location
         for i in indices:
             box = np.array(boxes)[i]
-            x = box[0]
-            y = box[1]
-            w = box[2]
-            h = box[3]
+            x = np.array(box)[0]
+            y = np.array(box)[1]
+            w = np.array(box)[2]
+            h = np.array(box)[3]
 
             # Add detected object into list
             detection_object = DetectedObject()
