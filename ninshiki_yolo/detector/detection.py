@@ -95,7 +95,7 @@ class Detection:
         indices = cv2.dnn.NMSBoxes(boxes, confidences, confident_threshold, nms_threshold)
         # Get object location
         for i in indices:
-            box = boxes[i]
+            box = np.array(boxes)[i]
             x = box[0]
             y = box[1]
             w = box[2]
