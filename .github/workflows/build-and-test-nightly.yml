@@ -19,5 +19,10 @@ jobs:
           sudo apt update && sudo apt install curl
           curl -s http://repository.ichiro-its.org/debian/setup-nightly.bash | bash -s
           curl -s http://repository.ichiro-its.org/rosdep/setup.bash | bash -s
+
+      - name: Install Packages
+        run: |
+          pip install wget
+
       - name: Build and test workspace
         uses: ichiro-its/ros2-build-and-test-action@main
