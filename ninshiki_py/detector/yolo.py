@@ -25,7 +25,7 @@ from rclpy.node import MsgType
 from ninshiki_interfaces.msg import DetectedObject
 
 
-class Detection:
+class Yolo:
     def __init__(self, gpu: bool = False, myriad: bool = False):
         self.file_name = os.path.expanduser('~') + "/yolo_model/obj.names"
         self.classes = None

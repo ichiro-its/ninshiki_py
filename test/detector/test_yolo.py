@@ -25,7 +25,7 @@ from rclpy.node import MsgType
 import wget
 
 from ninshiki_interfaces.msg import DetectedObjects
-from ninshiki_yolo.detector.detection import Detection
+from ninshiki_py.detector.yolo import Yolo
 
 
 class Object:
@@ -123,7 +123,7 @@ class TestDetection(unittest.TestCase):
 
         detected_objects = self.make_detected_objects()
 
-        detection = Detection()
+        detection = Yolo()
         detection.set_width(image.shape[1])
         detection.set_height(image.shape[0])
 

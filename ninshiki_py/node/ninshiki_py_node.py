@@ -25,12 +25,12 @@ from rclpy.node import MsgType
 
 from ninshiki_interfaces.msg import DetectedObjects
 from shisen_interfaces.msg import Image
-from ninshiki_yolo.detector.detection import Detection
+from ninshiki_py.detector.yolo import Yolo
 
 
-class NinshikiYoloNode:
+class NinshikiPyNode:
     def __init__(self, node: rclpy.node.Node, topic_name: str,
-                 detection: Detection):
+                 detection: Yolo):
         self.node = node
         self.topic_name = topic_name
 

@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-package_name = 'ninshiki_yolo'
+package_name = 'ninshiki_py'
 
 setup(
     name=package_name,
@@ -20,8 +20,8 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'detector = ninshiki_yolo.ninshiki_yolo_detector:main',
-            'viewer = ninshiki_yolo.ninshiki_yolo_viewer:main',
+            'detector = ninshiki_py.ninshiki_py_detector:main',
+            'viewer = ninshiki_py.ninshiki_py_viewer:main',
         ],
     },
 )

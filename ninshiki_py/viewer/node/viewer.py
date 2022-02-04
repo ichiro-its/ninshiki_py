@@ -21,7 +21,7 @@
 import cv2
 import numpy as np
 from ninshiki_interfaces.msg import DetectedObjects
-from ninshiki_yolo.utils.draw_detection_result import draw_detection_result
+from ninshiki_py.utils.draw_detection_result import draw_detection_result
 
 
 class Viewer:

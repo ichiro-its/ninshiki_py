@@ -20,18 +20,18 @@
 
 import rclpy
 from rclpy.node import Node
-from ninshiki_yolo.viewer.node.viewer import Viewer
-from ninshiki_yolo.viewer.node.viewer_node import ViewerNode
+from ninshiki_py.viewer.node.viewer import Viewer
+from ninshiki_py.viewer.node.viewer_node import ViewerNode
 
 
 def test_viewer_node():
     try:
         rclpy.init()
 
-        node = Node("ninshiki_yolo_viewer")
+        node = Node("ninshiki_py_viewer")
 
         viewer = Viewer()
-        viewer_node = ViewerNode(node, "camera/image", "ninshiki_yolo/detection", viewer)
+        viewer_node = ViewerNode(node, "camera/image", "ninshiki_py/detection", viewer)
 
         viewer_node.destroy_node()
         rclpy.shutdown()
