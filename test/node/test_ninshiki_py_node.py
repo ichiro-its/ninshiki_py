@@ -30,7 +30,8 @@ def test_ninshiki_py_node():
         node = Node("ninshiki_py")
 
         detection = Yolo()
-        detector_node = NinshikiPyNode(node, "camera/image", detection)
+        detector_node = NinshikiPyNode(node, "camera/image")
+        detector_node.set_detection(detection)
 
         detector_node.destroy_node()
         rclpy.shutdown()
