@@ -31,7 +31,7 @@ from ninshiki_interfaces.msg import DetectedObject
 class TfLite:
     def __init__(self):
         self.labels = None
-        self.model = os.path.expanduser('~') + "/tflite/efficientdet_lite0.tflite"
+        self.model = os.path.expanduser('~') + "/tflite_model/efficientdet_lite0.tflite"
 
         # variable declaration
         self.interpreter = None
@@ -46,7 +46,6 @@ class TfLite:
         self.initiate_tflite()
 
     def initiate_tflite(self):
-        print("sekali aja")
         self.interpreter = Interpreter(model_path=self.model)
         self.interpreter.allocate_tensors()
 
@@ -58,6 +57,9 @@ class TfLite:
 
         self.floating_model = (self.input_details[0]['dtype'] == np.float32)
 
+        self.load_metadata()
+
+    def load_metadata(self):
         # Load metadata from model.
         displayer = metadata.MetadataDisplayer.with_model_file(self.model)
 
