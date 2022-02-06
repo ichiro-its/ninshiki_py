@@ -35,9 +35,6 @@ class Yolo:
         self.net = cv2.dnn.readNetFromDarknet(config, weights)
         self.outs = None
 
-        # self.width = 0
-        # self.height = 0
-
         self.gpu = gpu
         self.myriad = myriad
 

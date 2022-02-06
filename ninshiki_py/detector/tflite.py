@@ -19,18 +19,19 @@
 # THE SOFTWARE.
 
 import cv2
+import json
 import numpy as np
 import os
 from rclpy.node import MsgType
 from tflite_runtime.interpreter import Interpreter
+from tflite_support import metadata
 from ninshiki_interfaces.msg import DetectedObject
 
 
 class TfLite:
     def __init__(self):
-        self.file_label = os.path.expanduser('~') + "/tflite/labelmap.txt"
         self.labels = None
-        self.model = os.path.expanduser('~') + "/tflite/detect.tflite"
+        self.model = os.path.expanduser('~') + "/tflite/efficientdet_lite0.tflite"
 
         # variable declaration
         self.interpreter = None
@@ -42,11 +43,10 @@ class TfLite:
         self.input_mean = 0
         self.input_std = 0
 
-    def initiate_tflite(self):
-        # Load the label map
-        with open(self.file_label, 'r') as f:
-            self.labels = [line.strip() for line in f.readlines()]
+        self.initiate_tflite()
 
+    def initiate_tflite(self):
+        print("sekali aja")
         self.interpreter = Interpreter(model_path=self.model)
         self.interpreter.allocate_tensors()
 
@@ -58,17 +58,35 @@ class TfLite:
 
         self.floating_model = (self.input_details[0]['dtype'] == np.float32)
 
-        self.input_mean = 127.5
-        self.input_std = 127.5
+        # Load metadata from model.
+        displayer = metadata.MetadataDisplayer.with_model_file(self.model)
+
+        # Save model metadata for preprocessing later.
+        model_metadata = json.loads(displayer.get_metadata_json())
+        process_units = model_metadata['subgraph_metadata'][0][
+            'input_tensor_metadata'][0]['process_units']
+        mean = 127.5
+        std = 127.5
+        for option in process_units:
+            if option['options_type'] == 'NormalizationOptions':
+                mean = option['options']['mean'][0]
+                std = option['options']['std'][0]
+        self.input_mean = mean
+        self.input_std = std
+
+        # Load label list from metadata.
+        file_name = displayer.get_packed_associated_file_list()[0]
+        label_map_file = displayer.get_associated_file_buffer(file_name).decode()
+        label_list = list(filter(len, label_map_file.splitlines()))
+        self.labels = label_list
 
     def detection(self, image: np.ndarray, detection_result: MsgType):
-        min_conf_threshold = 0.5
-
-        image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        min_conf_threshold = 0.3
         img_height, img_width, _ = image.shape
-        image_resized = cv2.resize(image_rgb, (self.model_width, self.model_height))
-        input_data = np.expand_dims(image_resized, axis=0)
 
+        # Preprocess
+        image_resized = cv2.resize(image, (self.model_width, self.model_height))
+        input_data = np.expand_dims(image_resized, axis=0)
         # Normalize pixel values if using a floating model (i.e. if model is non-quantized)
         if self.floating_model:
             input_data = (np.float32(input_data) - self.input_mean) / self.input_std

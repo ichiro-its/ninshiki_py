@@ -75,7 +75,6 @@ class NinshikiPyNode:
                     self.detection.detection(self.received_frame, self.detection_result)
                     # print("detector: ", self.detection_result)
                 elif isinstance(self.detection, TfLite):
-                    self.detection.initiate_tflite()
                     self.detection.detection(self.received_frame, self.detection_result)
 
                 self.detected_object_publisher.publish(self.detection_result)
