@@ -60,12 +60,12 @@ class TfLite:
 
         self.input_mean = 127.5
         self.input_std = 127.5
-    
+
     def detection(self, image: np.ndarray, detection_result: MsgType):
         min_conf_threshold = 0.5
 
         image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        img_height, img_width, _ = image.shape 
+        img_height, img_width, _ = image.shape
         image_resized = cv2.resize(image_rgb, (self.model_width, self.model_height))
         input_data = np.expand_dims(image_resized, axis=0)
 
@@ -74,25 +74,26 @@ class TfLite:
             input_data = (np.float32(input_data) - self.input_mean) / self.input_std
 
         # Perform the actual detection by running the model with the image as input
-        self.interpreter.set_tensor(self.input_details[0]['index'],input_data)
+        self.interpreter.set_tensor(self.input_details[0]['index'], input_data)
         self.interpreter.invoke()
 
         # Get detection results
-        boxes = self.interpreter.get_tensor(self.output_details[0]['index'])[0] # Bounding box coordinates of detected objects
-        classes = self.interpreter.get_tensor(self.output_details[1]['index'])[0] # Class index of detected objects
-        scores = self.interpreter.get_tensor(self.output_details[2]['index'])[0] # Confidence of detected objects
+        boxes = self.interpreter.get_tensor(self.output_details[0]['index'])[0]
+        classes = self.interpreter.get_tensor(self.output_details[1]['index'])[0]
+        scores = self.interpreter.get_tensor(self.output_details[2]['index'])[0]
 
         # Loop over all detections and draw detection box if confidence is above minimum threshold
         for i in range(len(scores)):
             if ((scores[i] > min_conf_threshold) and (scores[i] <= 1.0)):
 
                 # Get bounding box coordinates and draw box
-                # Interpreter can return coordinates that are outside of image dimensions, need to force them to be within image using max() and min()
+                # Interpreter can return coordinates that are outside of image dimensions,
+                # need to force them to be within image using max() and min()
                 y_min = int(max(1, (boxes[i][0] * img_height)))
                 x_min = int(max(1, (boxes[i][1] * img_width)))
                 y_max = int(min(img_height, (boxes[i][2] * img_height)))
                 x_max = int(min(img_width, (boxes[i][3] * img_width)))
-                
+
                 detection_object = DetectedObject()
 
                 detection_object.label = self.labels[int(classes[i])]

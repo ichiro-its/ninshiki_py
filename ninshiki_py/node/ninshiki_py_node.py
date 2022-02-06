@@ -56,30 +56,16 @@ class NinshikiPyNode:
         self.node.timer = self.node.create_timer(timer_period, self.publish)
 
     def listener_callback(self, message: MsgType):
-        if isinstance(self.detection, Yolo):
-            if (message.data != []):
-                self.detection.set_width(message.cols)
-                self.detection.set_height(message.rows)
+        if (message.data != []):
+            self.received_frame = np.array(message.data)
+            self.received_frame = np.frombuffer(self.received_frame, dtype=np.uint8)
 
-                self.received_frame = np.array(message.data)
-                self.received_frame = np.frombuffer(self.received_frame, dtype=np.uint8)
-
-                # Raw Image
-                if (message.quality < 0):
-                    self.received_frame = self.received_frame.reshape(message.rows, message.cols, 3)
-                # Compressed Image
-                else:
-                    self.received_frame = cv2.imdecode(self.received_frame, cv2.IMREAD_UNCHANGED)
-        elif isinstance(self.detection, TfLite):
-                self.received_frame = np.array(message.data)
-                self.received_frame = np.frombuffer(self.received_frame, dtype=np.uint8)
-
-                # Raw Image
-                if (message.quality < 0):
-                    self.received_frame = self.received_frame.reshape(message.rows, message.cols, 3)
-                # Compressed Image
-                else:
-                    self.received_frame = cv2.imdecode(self.received_frame, cv2.IMREAD_UNCHANGED)
+            # Raw Image
+            if (message.quality < 0):
+                self.received_frame = self.received_frame.reshape(message.rows, message.cols, 3)
+            # Compressed Image
+            else:
+                self.received_frame = cv2.imdecode(self.received_frame, cv2.IMREAD_UNCHANGED)
 
     def publish(self):
         if (self.received_frame is not None):
@@ -99,6 +85,6 @@ class NinshikiPyNode:
 
         # Clear message list
         self.detection_result.detected_objects.clear()
-    
+
     def set_detection(self, detection: Yolo or TfLite):
         self.detection = detection

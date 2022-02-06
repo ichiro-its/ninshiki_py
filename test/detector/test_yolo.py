@@ -124,12 +124,6 @@ class TestDetection(unittest.TestCase):
         detected_objects = self.make_detected_objects()
 
         detection = Yolo()
-        detection.set_width(image.shape[1])
-        detection.set_height(image.shape[0])
-
-        self.assertEqual(detection.width, 768)
-        self.assertEqual(detection.height, 576)
-
         detection.pass_image_to_network(image)
         detection.detection(image, detection_result)
 
