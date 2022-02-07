@@ -72,10 +72,10 @@ class NinshikiPyNode:
             if (self.received_frame.size != 0):
                 if isinstance(self.detection, Yolo):
                     self.detection.pass_image_to_network(self.received_frame)
-                    self.detection.detection(self.received_frame, self.detection_result)
+                    self.detection.detection(self.received_frame, self.detection_result, 0.4, 0.3)
                     # print("detector: ", self.detection_result)
                 elif isinstance(self.detection, TfLite):
-                    self.detection.detection(self.received_frame, self.detection_result)
+                    self.detection.detection(self.received_frame, self.detection_result, 0.4)
 
                 self.detected_object_publisher.publish(self.detection_result)
         else:

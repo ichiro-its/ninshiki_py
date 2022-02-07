@@ -104,18 +104,18 @@ class TestDetection(unittest.TestCase):
         # download image, config, class name, and weights
         self.download("https://raw.githubusercontent.com/tensorflow/examples/master/"
                       "lite/examples/object_detection/raspberry_pi/test_data/table.jpg",
-                      "/example_img/")
+                      "/example_img_tflite/")
         self.download("https://tfhub.dev/tensorflow/lite-model/efficientdet/lite0/"
                       "detection/metadata/1?lite-format=tflite", "/tflite_model/")
 
-        image_path = os.path.expanduser('~') + "/example_img/table.jpg"
+        image_path = os.path.expanduser('~') + "/example_img_tflite/table.jpg"
         image = cv2.imread(image_path)
         detection_result = DetectedObjects()
 
         detected_objects = self.make_detected_objects()
 
         detection = TfLite()
-        detection.detection(image, detection_result)
+        detection.detection(image, detection_result, 0.4)
 
         for i in range(len(detection_result.detected_objects)):
             # check detected object name is the same
@@ -125,5 +125,5 @@ class TestDetection(unittest.TestCase):
             score = self.iou(detected_objects[i], detection_result.detected_objects[i])
             self.assertGreaterEqual(score, 0.8)
 
-        self.delete_folder("/example_img/")
+        self.delete_folder("/example_img_tflite/")
         self.delete_folder("/tflite_model/")

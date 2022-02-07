@@ -63,10 +63,11 @@ class Yolo:
         self.net.setInput(blob)
         self.outs = self.net.forward(layerOutput)
 
-    def detection(self, image: np.ndarray, detection_result: MsgType):
+    def detection(self, image: np.ndarray, detection_result: MsgType, conf_threshold: float,
+                  nms_threshold: float):
         # Get object name, score, and location
-        confident_threshold = 0.4
-        nms_threshold = 0.3
+        confident_threshold = conf_threshold
+        nms_threshold = nms_threshold
 
         class_id = np.argmax(self.outs[0][0][5:])
         frame_h, frame_w, frame_c = image.shape

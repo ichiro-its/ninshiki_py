@@ -82,8 +82,8 @@ class TfLite:
         label_list = list(filter(len, label_map_file.splitlines()))
         self.labels = label_list
 
-    def detection(self, image: np.ndarray, detection_result: MsgType):
-        min_conf_threshold = 0.3
+    def detection(self, image: np.ndarray, detection_result: MsgType, conf_threshold: float):
+        min_conf_threshold = conf_threshold
         img_height, img_width, _ = image.shape
 
         # Preprocess
