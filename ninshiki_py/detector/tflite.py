@@ -52,8 +52,11 @@ class TfLite:
         # Get model details
         self.input_details = self.interpreter.get_input_details()
         self.output_details = self.interpreter.get_output_details()
-        self.model_height = self.input_details[0]['shape'][1]
-        self.model_width = self.input_details[0]['shape'][2]
+
+        if len(self.input_details) >= 1:
+            if 'shape' in self.input_details[0].keys():
+                self.model_height = self.input_details[0]['shape'][1]
+                self.model_width = self.input_details[0]['shape'][2]
 
         self.floating_model = (self.input_details[0]['dtype'] == np.float32)
 
@@ -65,14 +68,17 @@ class TfLite:
 
         # Save model metadata for preprocessing later.
         model_metadata = json.loads(displayer.get_metadata_json())
-        process_units = model_metadata['subgraph_metadata'][0][
-            'input_tensor_metadata'][0]['process_units']
+
         mean = 127.5
         std = 127.5
-        for option in process_units:
-            if option['options_type'] == 'NormalizationOptions':
-                mean = option['options']['mean'][0]
-                std = option['options']['std'][0]
+        if len(model_metadata) > 1:
+            if 'subgraph_metadata' in model_metadata.keys():
+                process_units = model_metadata['subgraph_metadata'][0][
+                    'input_tensor_metadata'][0]['process_units']
+                for option in process_units:
+                    if option['options_type'] == 'NormalizationOptions':
+                        mean = option['options']['mean'][0]
+                        std = option['options']['std'][0]
         self.input_mean = mean
         self.input_std = std
 
