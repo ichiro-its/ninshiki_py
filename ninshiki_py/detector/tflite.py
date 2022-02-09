@@ -104,29 +104,33 @@ class TfLite:
         self.interpreter.invoke()
 
         # Get detection results
-        boxes = self.interpreter.get_tensor(self.output_details[0]['index'])[0]
-        classes = self.interpreter.get_tensor(self.output_details[1]['index'])[0]
-        scores = self.interpreter.get_tensor(self.output_details[2]['index'])[0]
+        if len(self.output_details) >= 3:
+            if ('index' in self.output_details[0].keys() and
+                'index' in self.output_details[1].keys() and
+                    'index' in self.output_details[2].keys()):
+                boxes = self.interpreter.get_tensor(self.output_details[0]['index'])[0]
+                classes = self.interpreter.get_tensor(self.output_details[1]['index'])[0]
+                scores = self.interpreter.get_tensor(self.output_details[2]['index'])[0]
 
         # Loop over all detections and draw detection box if confidence is above minimum threshold
         for i in range(len(scores)):
             if ((scores[i] > min_conf_threshold) and (scores[i] <= 1.0)):
-
                 # Get bounding box coordinates and draw box
                 # Interpreter can return coordinates that are outside of image dimensions,
                 # need to force them to be within image using max() and min()
-                y_min = int(max(1, (boxes[i][0] * img_height)))
-                x_min = int(max(1, (boxes[i][1] * img_width)))
-                y_max = int(min(img_height, (boxes[i][2] * img_height)))
-                x_max = int(min(img_width, (boxes[i][3] * img_width)))
+                if len(boxes[i]) == 4:
+                    y_min = int(max(1, (boxes[i][0] * img_height)))
+                    x_min = int(max(1, (boxes[i][1] * img_width)))
+                    y_max = int(min(img_height, (boxes[i][2] * img_height)))
+                    x_max = int(min(img_width, (boxes[i][3] * img_width)))
 
-                detection_object = DetectedObject()
+                    detection_object = DetectedObject()
 
-                detection_object.label = self.labels[int(classes[i])]
-                detection_object.score = float(scores[i])
-                detection_object.left = x_min / img_width
-                detection_object.top = y_min / img_height
-                detection_object.right = x_max / img_width
-                detection_object.bottom = y_max / img_height
+                    detection_object.label = self.labels[int(classes[i])]
+                    detection_object.score = float(scores[i])
+                    detection_object.left = x_min / img_width
+                    detection_object.top = y_min / img_height
+                    detection_object.right = x_max / img_width
+                    detection_object.bottom = y_max / img_height
 
-                detection_result.detected_objects.append(detection_object)
+                    detection_result.detected_objects.append(detection_object)
