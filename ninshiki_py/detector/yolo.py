@@ -74,21 +74,21 @@ class Yolo:
         class_ids = []
         confidences = []
         boxes = []
-
         for out in self.outs:
             for detection in out:
-                scores = detection[5:]
-                class_id = np.argmax(scores)
-                confidence = scores[class_id]
-                c_x = int(detection[0] * frame_w)
-                c_y = int(detection[1] * frame_h)
-                w = int(detection[2] * frame_w)
-                h = int(detection[3] * frame_h)
-                x = int(c_x - w / 2)
-                y = int(c_y - h / 2)
-                class_ids.append(class_id)
-                confidences.append(float(confidence))
-                boxes.append([x, y, w, h])
+                if len(detection) == 5 + len(self.classes):
+                    scores = detection[5:]
+                    class_id = np.argmax(scores)
+                    confidence = scores[class_id]
+                    c_x = int(detection[0] * frame_w)
+                    c_y = int(detection[1] * frame_h)
+                    w = int(detection[2] * frame_w)
+                    h = int(detection[3] * frame_h)
+                    x = int(c_x - w / 2)
+                    y = int(c_y - h / 2)
+                    class_ids.append(class_id)
+                    confidences.append(float(confidence))
+                    boxes.append([x, y, w, h])
 
         if len(boxes):
             indices = cv2.dnn.NMSBoxes(boxes, confidences, confident_threshold, nms_threshold)
