@@ -22,9 +22,7 @@ jobs:
 
       - name: Install Modules
         run: |
-          pip install wget
-          pip install tflite-runtime
-          pip install tflite-support
+          pip install wget tflite-runtime tflite-support
 
       - name: Build and test workspace
         uses: ichiro-its/ros2-build-and-test-action@main
