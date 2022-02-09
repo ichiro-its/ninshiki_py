@@ -41,7 +41,8 @@ def main(args=None):
     arg = parser.parse_args()
 
     node = Node("ninshiki_py")
-    detection = None
+    # Anticipate if the input argument not yolo or tflite
+    detection = TfLite()
 
     if arg.detector.lower() == 'yolo':
         detection = Yolo(gpu=arg.GPU, myriad=arg.MYRIAD)
