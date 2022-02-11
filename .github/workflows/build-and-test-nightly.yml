@@ -12,7 +12,7 @@ jobs:
       - name: Checkout this repository
         uses: actions/checkout@v2.3.4
         with:
-          path: ninshiki_yolo
+          path: ninshiki_py
 
       - name: Add nightly Debian repository and rosdep sources list
         run: |
@@ -22,7 +22,7 @@ jobs:
 
       - name: Install Modules
         run: |
-          pip install wget
+          pip install wget tflite-runtime tflite-support
 
       - name: Build and test workspace
         uses: ichiro-its/ros2-build-and-test-action@main

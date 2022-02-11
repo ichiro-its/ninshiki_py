@@ -20,24 +20,20 @@
 
 import rclpy
 from rclpy.node import Node
-
-from ninshiki_yolo.viewer.node.viewer import Viewer
-from ninshiki_yolo.viewer.node.viewer_node import ViewerNode
-
-
-def main(args=None):
-    rclpy.init(args=args)
-
-    node = Node("ninshiki_yolo_viewer")
-
-    viewer = Viewer()
-    viewer_node = ViewerNode(node, "camera/image", "ninshiki_yolo/detection", viewer)
-
-    rclpy.spin(viewer_node.node)
-
-    viewer_node.destroy_node()
-    rclpy.shutdown()
+from ninshiki_py.detector.yolo import Yolo
+from ninshiki_py.node.ninshiki_py_node import NinshikiPyNode
 
 
-if __name__ == '__main__':
-    main()
+def test_ninshiki_py_node():
+    try:
+        rclpy.init()
+        node = Node("ninshiki_py")
+
+        detection = Yolo()
+        detector_node = NinshikiPyNode(node, "camera/image")
+        detector_node.set_detection(detection)
+
+        detector_node.destroy_node()
+        rclpy.shutdown()
+    except Exception:
+        pass

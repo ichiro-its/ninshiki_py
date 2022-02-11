@@ -25,7 +25,7 @@ from rclpy.node import MsgType
 import wget
 
 from ninshiki_interfaces.msg import DetectedObjects
-from ninshiki_yolo.detector.detection import Detection
+from ninshiki_py.detector.yolo import Yolo
 
 
 class Object:
@@ -109,7 +109,7 @@ class TestDetection(unittest.TestCase):
     def test_detection(self):
         # download image, config, class name, and weights
         self.download("https://raw.githubusercontent.com/pjreddie/darknet/master/"
-                      "data/dog.jpg", "/example_img/")
+                      "data/dog.jpg", "/example_img_yolo/")
         self.download("https://raw.githubusercontent.com/pjreddie/darknet/master/"
                       "cfg/yolov3-tiny.cfg", "/yolo_model/")
         self.download("https://raw.githubusercontent.com/pjreddie/darknet/master/"
@@ -117,21 +117,15 @@ class TestDetection(unittest.TestCase):
         self.download("https://pjreddie.com/media/files/yolov3-tiny.weights",
                       "/yolo_model/")
 
-        image_path = os.path.expanduser('~') + "/example_img/dog.jpg"
+        image_path = os.path.expanduser('~') + "/example_img_yolo/dog.jpg"
         image = cv2.imread(image_path)
         detection_result = DetectedObjects()
 
         detected_objects = self.make_detected_objects()
 
-        detection = Detection()
-        detection.set_width(image.shape[1])
-        detection.set_height(image.shape[0])
-
-        self.assertEqual(detection.width, 768)
-        self.assertEqual(detection.height, 576)
-
+        detection = Yolo()
         detection.pass_image_to_network(image)
-        detection.detection(image, detection_result)
+        detection.detection(image, detection_result, 0.4, 0.3)
 
         self.assertFalse(detection.gpu)
         self.assertFalse(detection.myriad)
@@ -144,5 +138,5 @@ class TestDetection(unittest.TestCase):
             score = self.iou(detected_objects[i], detection_result.detected_objects[i])
             self.assertGreaterEqual(score, 0.9)
 
-        self.delete_folder("/example_img/")
+        self.delete_folder("/example_img_yolo/")
         self.delete_folder("/yolo_model/")

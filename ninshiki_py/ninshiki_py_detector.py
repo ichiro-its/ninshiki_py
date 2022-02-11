@@ -22,8 +22,9 @@ import argparse
 import rclpy
 from rclpy.node import Node
 
-from ninshiki_yolo.detector.detection import Detection
-from ninshiki_yolo.node.ninshiki_yolo_node import NinshikiYoloNode
+from ninshiki_py.detector.yolo import Yolo
+from ninshiki_py.detector.tflite import TfLite
+from ninshiki_py.node.ninshiki_py_node import NinshikiPyNode
 
 
 def main(args=None):
@@ -31,16 +32,23 @@ def main(args=None):
 
     parser = argparse.ArgumentParser()
     parser.add_argument('topic', help='specify topic name to subscribe')
+    parser.add_argument('--detector', help='chose detector we want to use (yolo / tflite)',
+                        type=str, default='tflite')
     parser.add_argument('--GPU', help='if we chose the computation using GPU',
                         type=int, choices=[0, 1], default=0)
     parser.add_argument('--MYRIAD', help='if we chose the computation using Compute Stick',
                         type=int, choices=[0, 1], default=0)
     arg = parser.parse_args()
 
-    node = Node("ninshiki_yolo")
+    node = Node("ninshiki_py")
 
-    detection = Detection(gpu=arg.GPU, myriad=arg.MYRIAD)
-    detector_node = NinshikiYoloNode(node, arg.topic, detection)
+    if arg.detector.lower() == 'yolo':
+        detection = Yolo(gpu=arg.GPU, myriad=arg.MYRIAD)
+    else:
+        detection = TfLite()
+
+    detector_node = NinshikiPyNode(node, arg.topic)
+    detector_node.set_detection(detection)
 
     rclpy.spin(detector_node.node)
 

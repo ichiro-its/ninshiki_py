@@ -25,7 +25,7 @@ from rclpy.node import MsgType
 from ninshiki_interfaces.msg import DetectedObject
 
 
-class Detection:
+class Yolo:
     def __init__(self, gpu: bool = False, myriad: bool = False):
         self.file_name = os.path.expanduser('~') + "/yolo_model/obj.names"
         self.classes = None
@@ -34,9 +34,6 @@ class Detection:
         weights = os.path.expanduser('~') + "/yolo_model/yolo_weights.weights"
         self.net = cv2.dnn.readNetFromDarknet(config, weights)
         self.outs = None
-
-        self.width = 0
-        self.height = 0
 
         self.gpu = gpu
         self.myriad = myriad
@@ -66,31 +63,32 @@ class Detection:
         self.net.setInput(blob)
         self.outs = self.net.forward(layerOutput)
 
-    def detection(self, image: np.ndarray, detection_result: MsgType):
+    def detection(self, image: np.ndarray, detection_result: MsgType, conf_threshold: float,
+                  nms_threshold: float):
         # Get object name, score, and location
-        confident_threshold = 0.4
-        nms_threshold = 0.3
+        confident_threshold = conf_threshold
+        nms_threshold = nms_threshold
 
         class_id = np.argmax(self.outs[0][0][5:])
         frame_h, frame_w, frame_c = image.shape
         class_ids = []
         confidences = []
         boxes = []
-
         for out in self.outs:
             for detection in out:
-                scores = detection[5:]
-                class_id = np.argmax(scores)
-                confidence = scores[class_id]
-                c_x = int(detection[0] * frame_w)
-                c_y = int(detection[1] * frame_h)
-                w = int(detection[2] * frame_w)
-                h = int(detection[3] * frame_h)
-                x = int(c_x - w / 2)
-                y = int(c_y - h / 2)
-                class_ids.append(class_id)
-                confidences.append(float(confidence))
-                boxes.append([x, y, w, h])
+                if len(detection) == 5 + len(self.classes):
+                    scores = detection[5:]
+                    class_id = np.argmax(scores)
+                    confidence = scores[class_id]
+                    c_x = int(detection[0] * frame_w)
+                    c_y = int(detection[1] * frame_h)
+                    w = int(detection[2] * frame_w)
+                    h = int(detection[3] * frame_h)
+                    x = int(c_x - w / 2)
+                    y = int(c_y - h / 2)
+                    class_ids.append(class_id)
+                    confidences.append(float(confidence))
+                    boxes.append([x, y, w, h])
 
         if len(boxes):
             indices = cv2.dnn.NMSBoxes(boxes, confidences, confident_threshold, nms_threshold)
@@ -109,18 +107,12 @@ class Detection:
 
                         detection_object.label = self.classes[class_ids[i]]
                         detection_object.score = confidences[i]
-                        detection_object.left = x / self.width
-                        detection_object.top = y / self.height
-                        detection_object.right = (x+w) / self.width
-                        detection_object.bottom = (y+h) / self.height
+                        detection_object.left = x / frame_w
+                        detection_object.top = y / frame_h
+                        detection_object.right = (x+w) / frame_w
+                        detection_object.bottom = (y+h) / frame_h
 
                         detection_result.detected_objects.append(detection_object)
-
-    def set_width(self, width):
-        self.width = width
-
-    def set_height(self, height):
-        self.height = height
 
     def load_data():
         # Load data from settei

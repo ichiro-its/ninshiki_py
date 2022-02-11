@@ -25,19 +25,19 @@ from rclpy.node import MsgType
 
 from ninshiki_interfaces.msg import DetectedObjects
 from shisen_interfaces.msg import Image
-from ninshiki_yolo.detector.detection import Detection
+from ninshiki_py.detector.tflite import TfLite
+from ninshiki_py.detector.yolo import Yolo
 
 
-class NinshikiYoloNode:
-    def __init__(self, node: rclpy.node.Node, topic_name: str,
-                 detection: Detection):
+class NinshikiPyNode:
+    def __init__(self, node: rclpy.node.Node, topic_name: str):
         self.node = node
         self.topic_name = topic_name
 
         self.detection_result = DetectedObjects()
         self.received_frame = None
 
-        self.detection = detection
+        self.detection = None
 
         self.image_subscription = self.node.create_subscription(
             Image, self.topic_name, self.listener_callback, 10)
@@ -57,9 +57,6 @@ class NinshikiYoloNode:
 
     def listener_callback(self, message: MsgType):
         if (message.data != []):
-            self.detection.set_width(message.cols)
-            self.detection.set_height(message.rows)
-
             self.received_frame = np.array(message.data)
             self.received_frame = np.frombuffer(self.received_frame, dtype=np.uint8)
 
@@ -73,9 +70,13 @@ class NinshikiYoloNode:
     def publish(self):
         if (self.received_frame is not None):
             if (self.received_frame.size != 0):
-                self.detection.pass_image_to_network(self.received_frame)
-                self.detection.detection(self.received_frame, self.detection_result)
-                # print("detector: ", self.detection_result)
+                if isinstance(self.detection, Yolo):
+                    self.detection.pass_image_to_network(self.received_frame)
+                    self.detection.detection(self.received_frame, self.detection_result, 0.4, 0.3)
+                    # print("detector: ", self.detection_result)
+                elif isinstance(self.detection, TfLite):
+                    self.detection.detection(self.received_frame, self.detection_result, 0.4)
+
                 self.detected_object_publisher.publish(self.detection_result)
         else:
             # self.get_logger().warn("once, received empty image")
@@ -83,3 +84,6 @@ class NinshikiYoloNode:
 
         # Clear message list
         self.detection_result.detected_objects.clear()
+
+    def set_detection(self, detection: Yolo or TfLite):
+        self.detection = detection
