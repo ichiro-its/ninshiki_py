@@ -111,6 +111,8 @@ class Yolo:
                         detection_object.top = y / frame_h
                         detection_object.right = (x+w) / frame_w
                         detection_object.bottom = (y+h) / frame_h
+                        detection_object.img_width = frame_w
+                        detection_object.img_height = frame_h
 
                         detection_result.detected_objects.append(detection_object)
 
