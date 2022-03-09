@@ -132,7 +132,5 @@ class TfLite:
                     detection_object.top = y_min / img_height
                     detection_object.right = x_max / img_width
                     detection_object.bottom = y_max / img_height
-                    detection_object.img_width = img_width
-                    detection_object.img_height = img_height
 
                     detection_result.detected_objects.append(detection_object)
